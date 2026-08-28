@@ -1,8 +1,9 @@
+import { RecordVisit } from './components/RecordVisit';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 
 /**
- * Phase 0 app shell. A deliberately minimal, installable, offline-aware shell that later phases
- * fill in: voice capture (P1), readback/edit (P2), the offline queue + sync (P3), OCR (P4).
+ * App shell. Phase 1 wires in the online capture flow (record → STT → extraction → review).
+ * Readback/edit (P2), the offline queue + sync (P3), and OCR (P4) build on top.
  */
 export function App() {
   const online = useOnlineStatus();
@@ -21,17 +22,8 @@ export function App() {
       </header>
 
       <section className="shell__body">
-        <p className="lead">
-          Voice-first, offline-capable field documentation for frontline health workers.
-        </p>
-        <p className="muted">
-          Phase&nbsp;0 scaffold. Voice capture, structured extraction, spoken readback, and
-          sync-later arrive in the phases tracked in <code>docs/roadmap.md</code>.
-        </p>
-
-        <button className="cta" type="button" disabled aria-disabled="true">
-          🎙️ Record a visit (coming in Phase&nbsp;1)
-        </button>
+        <p className="lead">Narrate a home visit; the record writes itself.</p>
+        <RecordVisit />
       </section>
 
       <footer className="shell__footer muted">
