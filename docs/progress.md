@@ -15,14 +15,15 @@ whenever work starts or finishes.
 | Phase | Done | In progress | Not started | Total |
 |---|---|---|---|---|
 | **P0 — Scaffold** | 9 | 0 | 0 | 9 |
-| **P1 — Online happy path** | 0 | 0 | 6 | 6 |
-| **P2 — Readback loop** | 0 | 0 | 4 | 4 |
+| **P1 — Online happy path** | 6 | 0 | 0 | 6 |
+| **P2 — Readback loop** | 4 | 0 | 0 | 4 |
 | **P3 — Realtime + offline** | 0 | 0 | 7 | 7 |
 | **P4 — OCR ingest** | 0 | 0 | 3 | 3 |
 | **P5 — Deploy** | 0 | 0 | 4 | 4 |
-| **Continuous (T7)** | 0 | 0 | 3 | 3 |
+| **Continuous (T7)** | 1 | 0 | 2 | 3 |
+| **Mobile / Android (T8)** | 2 | 0 | 2 | 4 |
 
-**Current focus:** Phase 0 complete → begin Phase 1 (Track T2/T3 online happy path).
+**Current focus:** Phase 2 + Android shell (Capacitor) done → begin Phase 3 (realtime STT + offline queue + idempotent sync).
 
 ---
 
@@ -46,12 +47,12 @@ whenever work starts or finishes.
 
 | ID | Feature | Track | Status | Updated | Note |
 |---|---|---|---|---|---|
-| T2-F02 | Batch STT `saaras:v3` behind client | T2 | ⬜ | — | |
-| T2-F03 | Extraction `sarvam-m` → `VisitExtraction` | T2 | ⬜ | — | |
-| T7-F03 | Extraction JSON-Schema validation | T7 | ⬜ | — | |
-| T3-F02 | `POST /api/v1/visits/transcribe` | T3 | ⬜ | — | |
-| T4-F02 | Record → API → render record | T4 | ⬜ | — | |
-| T2-F04 | Code-mixed extraction prompt | T2 | ⬜ | — | |
+| T2-F02 | Batch STT `saaras:v3` behind client | T2 | ✅ | 2026-08-28 | `transcribe()` used by pipeline; MockWebServer contract test |
+| T2-F03 | Extraction `sarvam-m` → `VisitExtraction` | T2 | ✅ | 2026-08-28 | `extractVisit()` with fence-stripping; contract test |
+| T7-F03 | Extraction JSON-Schema validation | T7 | ✅ | 2026-08-28 | `VisitExtractionValidator` vs `data-model.md` §5; invalid → DRAFT |
+| T3-F02 | `POST /api/v1/visits/transcribe` | T3 | ✅ | 2026-08-28 | Reactive multipart → `VisitDraftResponse`; 502 on upstream fail |
+| T4-F02 | Record → API → render record | T4 | ✅ | 2026-08-28 | MediaRecorder capture → upload → `VisitRecordView` |
+| T2-F04 | Code-mixed extraction prompt | T2 | ✅ | 2026-08-28 | Bengali-English + controlled-vocab system prompt |
 
 ---
 
@@ -59,10 +60,10 @@ whenever work starts or finishes.
 
 | ID | Feature | Track | Status | Updated | Note |
 |---|---|---|---|---|---|
-| T2-F05 | TTS `bulbul:v3` + cache | T2 | ⬜ | — | |
-| T3-F03 | Readback endpoint + status transitions | T3 | ⬜ | — | |
-| T4-F03 | Play readback + inline edit | T4 | ⬜ | — | |
-| T2-F06 | Sarvam-Translate registry text | T2 | ⬜ | — | |
+| T2-F05 | TTS `bulbul:v3` + cache | T2 | ✅ | 2026-08-28 | `VisitReadbackService` with Caffeine cache keyed by normalised text |
+| T3-F03 | Readback endpoint + status transitions | T3 | ✅ | 2026-08-28 | `/readback` + `/confirm`; `VisitConfirmationService` state machine, 409 on superseded |
+| T4-F03 | Play readback + inline edit | T4 | ✅ | 2026-08-28 | `VisitReview`: editable fields, play TTS, confirm/edit |
+| T2-F06 | Sarvam-Translate registry text | T2 | ✅ | 2026-08-28 | Official text translated for readback; degrades to English on failure |
 
 ---
 
@@ -101,18 +102,43 @@ whenever work starts or finishes.
 
 ---
 
+## Mobile / Android (Track T8)
+
+| ID | Feature | Status | Updated | Note |
+|---|---|---|---|---|
+| T8-F01 | Capacitor shell + `android/` project | ✅ | 2026-08-28 | Cap 7; `cap doctor` clean; appId `ai.swasthyavaani.app` |
+| T8-F02 | Native-aware voice capture | ✅ | 2026-08-28 | `useVoiceCapture`: plugin on device, MediaRecorder on web |
+| T8-F03 | APK build + distribution runbook | ⬜ | — | Web side ready; needs Android SDK — see `docs/android.md` |
+| T8-F04 | Native offline storage + connectivity | ⬜ | — | Aligns with Phase 3 queue |
+
+---
+
 ## Continuous (Track T7)
 
 | ID | Feature | Status | Updated | Note |
 |---|---|---|---|---|
 | T7-F05 | No-PII-in-logs enforcement | ⬜ | — | |
 | T7-F06 | Observability (correlation id, metrics) | ⬜ | — | |
-| T7-F07 | Synthetic fixture library | ⬜ | — | |
+| T7-F07 | Synthetic fixture library | ✅ | 2026-08-28 | `scripts/fixtures/synthetic-transcripts.json` (code-mixed); grow over time |
 
 ---
 
 ## Changelog
 
+- **2026-08-28** — **Android shell (Capacitor) added (T8-F01/F02).** The React PWA is wrapped as
+  a native Android app (Capacitor 7, `frontend/android/`) — one codebase. `useVoiceCapture`
+  selects the native voice-recorder plugin on device and MediaRecorder on web; manifest declares
+  RECORD_AUDIO. APK build documented in `docs/android.md` (needs Android SDK). No backend change.
+- **2026-08-28** — **Phase 2 (readback loop) landed.** Backend: `VisitReadbackService`
+  (compose official text → Sarvam-Translate → Bulbul TTS, Caffeine-cached, degrades to English),
+  `VisitConfirmationService` state machine, `/readback` + `/confirm` endpoints, 409 on invalid
+  transition. Frontend: `VisitReview` — inline field editing, play readback (base64→audio), and
+  confirm/edit. 20 backend + 10 frontend tests green.
+- **2026-08-28** — **Phase 1 (online happy path) landed.** Backend: `VisitTranscriptionService`
+  orchestrating STT → extraction → schema validation → `DRAFT` `VisitRecord`, `POST
+  /api/v1/visits/transcribe` (reactive multipart), `VisitExtractionValidator`, RFC-7807 error
+  handling, injectable `Clock`. Frontend: MediaRecorder capture hook, visit API client, and the
+  `VisitRecordView` review UI. 10 backend + 7 frontend tests green.
 - **2026-08-28** — Phase 0 scaffold landed: docs (architecture, Sarvam integration,
   roadmap, progress), multi-module Maven backend (domain/sarvam/api) with `SarvamClient`
   seam and health checks, React PWA skeleton, CI stub.

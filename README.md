@@ -147,16 +147,23 @@ swasthya-vaani/
 │   ├── swasthyavaani-sarvam    # SarvamClient interface + single WebClient impl
 │   └── swasthyavaani-api       # WebFlux app: endpoints, health, wiring
 ├── frontend/              # React PWA (Vite + TS + Workbox)
+│   └── android/                # Capacitor native Android wrapper (same codebase)
 └── scripts/               # dev / seed + synthetic fixtures
 ```
+
+### Android app
+
+The PWA also ships as a native Android app via **Capacitor** — one codebase, native audio
+capture on-device. `cd frontend && pnpm build && pnpm cap:sync && pnpm android:open`
+(APK build needs the Android SDK). See **[`docs/android.md`](./docs/android.md)**.
 
 ---
 
 ## Roadmap
 
 - [x] **Phase 0** — Repo scaffold, `SarvamClient` abstraction, health checks
-- [ ] **Phase 1** — Online happy path: record → STT → extraction → structured record
-- [ ] **Phase 2** — Bulbul TTS readback + edit-and-correct
+- [x] **Phase 1** — Online happy path: record → STT → extraction → structured record
+- [x] **Phase 2** — Bulbul TTS readback + edit-and-correct
 - [ ] **Phase 3** — Realtime STT + full offline queue and idempotent sync
 - [ ] **Phase 4** — Sarvam Vision OCR ingest of paper records
 - [ ] **Phase 5** — CDK deploy to `ap-south-1` + runbook

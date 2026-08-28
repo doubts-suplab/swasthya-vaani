@@ -215,3 +215,60 @@ Append entries here; newest last. Format: **context → decision → consequence
 - **Consequence.** Swapping a model is a config change, not a code change; the CLAUDE.md
   mapping is honoured at the capability level even where the concrete id evolved. See
   `sarvam-integration.md` §2.
+
+### ADR-004 — Phase 1 draft response shape & `visitId` fallback
+- **Context.** The transcribe endpoint must return the structured record *and* the raw
+  transcript (so the UI can fall back to manual entry when extraction doesn't validate),
+  and a client may not yet supply the client-generated `visitId` (that becomes mandatory
+  for offline idempotency in Phase 3).
+- **Decision.** Return a `VisitDraftResponse { visit, transcript, extractionValid,
+  validationMessages }` rather than a bare `VisitRecord`. The transcript is *not* stuffed
+  into the record (it stays an S3 pointer per `data-model.md` §2). If the request omits
+  `visitId`, the server generates a UUID v4; when the client supplies one it is honoured.
+- **Consequence.** The UI always has the transcript for review/manual entry; every visit is
+  `DRAFT`/`PENDING` at this stage. Phase 3 tightens `visitId` to client-supplied-always for
+  exactly-once sync, and moves audio/transcript to S3.
+
+### ADR-005 — Extraction failures degrade, they don't 500
+- **Context.** `sarvam-m` can occasionally return non-conformant JSON; the field must never
+  lose a visit over it (`CLAUDE.md` §5, §7.5).
+- **Decision.** STT failure surfaces as `502` (upstream) via `GlobalErrorHandler`, but an
+  extraction/validation failure returns a `DRAFT` with the transcript and
+  `extractionValid=false` for manual entry — not an error.
+- **Consequence.** The worker can always complete a visit; bad extractions become review
+  work, not lost data.
+
+### ADR-006 — Readback = compose → translate → TTS, with English fallback and caching
+- **Context.** The confirmation readback must be in the worker's language, but TTS is
+  metered and the Sarvam-Translate contract is not yet fully verified
+  (`sarvam-integration.md` §7).
+- **Decision.** Compose a formal English summary (`OfficialTextComposer`), translate it to
+  the target language (Sarvam-Translate), then synthesize with Bulbul. Translation failure
+  is **non-fatal** — it falls back to speaking the English text. Synthesized audio is cached
+  (Caffeine, keyed by normalised spoken text + language) so repeated confirmations don't
+  re-synthesize.
+- **Consequence.** One composer feeds both the spoken readback and the official
+  registry-entry text (T2-F06); readback still works if translate is down; TTS cost is
+  bounded. The formal text intentionally includes the beneficiary name — it goes only to the
+  in-India Sarvam endpoint, never to logs (`CLAUDE.md` §7.2).
+
+### ADR-007 — Confirm/edit is a stateless server-side transition (for now)
+- **Context.** Persistence and idempotent sync are Phase 3, but the `DRAFT →
+  CONFIRMED|EDITED` transition must be enforced by the server, not trusted from the client.
+- **Decision.** `POST /confirm` takes the record + an `edited` flag and returns it with the
+  new status and bumped `updatedAt`; a record already `SUPERSEDED` (sync status) is rejected
+  with `409`. No storage yet — the client holds the record between calls.
+- **Consequence.** The state machine is testable and correct in isolation; Phase 3 swaps the
+  in-memory hand-off for DynamoDB + idempotent upsert without changing the transition rules.
+
+### ADR-008 — Android via Capacitor, not a parallel native app
+- **Context.** The app targets low-end Android field devices. `CLAUDE.md` §3 chose a PWA
+  precisely because it installs on Android; a native artifact (Play Store, more reliable audio)
+  was later requested. A full native Kotlin app would be a second codebase.
+- **Decision.** Wrap the existing React app with **Capacitor** (`frontend/android/`). One
+  codebase serves web and app; native audio comes from `capacitor-voice-recorder`, with a
+  `useVoiceCapture` hook selecting the plugin on-device and `MediaRecorder` on the web. The
+  backend and the `VisitRecord` contract are unchanged.
+- **Consequence.** A single UI to maintain and a Play-Store-ready shell, at the cost of a second
+  build toolchain (Android SDK) needed only to produce the APK. A true native app stays possible
+  later and would reuse this backend + the `VisitRecord` JSON Schema. See `android.md`.

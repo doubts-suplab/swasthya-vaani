@@ -24,6 +24,7 @@ place and referenced everywhere.
 | **T5** | Data & Sync | Visit-record schema, DynamoDB, S3, SQS, idempotent sync |
 | **T6** | Infra & Deploy | AWS CDK, `ap-south-1` wiring, runbook |
 | **T7** | Quality & Security | Tests, PII discipline, residency guardrails, observability |
+| **T8** | Mobile (Android) | Capacitor shell, native capture, APK build & distribution |
 
 ---
 
@@ -111,6 +112,20 @@ Goal: CDK stack for `ap-south-1`, wired data plane, runbook.
 | **T6-F02** | API deploy target + config/secrets wiring | T6 | Backend runs against real data plane |
 | **T6-F03** | Runbook + residency/PII checklist in `docs/` | T6 | Ops can deploy & verify guardrails |
 | **T7-F04** | Residency guard: CI/asserts fail on any non-`ap-south-1` / non-India dependency | T7 | Guardrail §7.1 enforced automatically |
+
+---
+
+## Mobile — Android (Track T8)
+
+Wraps the React PWA as a native Android app via Capacitor — one codebase, no parallel app
+(`docs/android.md`, ADR-008).
+
+| ID | Feature | Status DoD |
+|---|---|---|
+| **T8-F01** | Capacitor shell + `android/` project (app id, manifest, plugins) | `cap doctor` clean; web build syncs into the app |
+| **T8-F02** | Native-aware voice capture (`useVoiceCapture`: plugin on device, MediaRecorder on web) | One capture API; native records AAC, web WebM |
+| **T8-F03** | APK build + distribution runbook (needs Android SDK) | `pnpm android:build` documented; signing/Play notes |
+| **T8-F04** | Native offline storage + connectivity (align with Phase 3 queue) | Queue persists via native storage; `@capacitor/network` status |
 
 ---
 
