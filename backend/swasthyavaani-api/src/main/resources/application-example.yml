@@ -1,0 +1,33 @@
+# Example Spring config for SwasthyaVaani API.
+# Copy the values you need into environment variables or a local, git-ignored
+# application-local.yml. NEVER commit real secrets (CLAUDE.md §5).
+#
+# The only required secret is the Sarvam API key:
+#   export SARVAM_API_KEY=sk_...        # from https://docs.sarvam.ai
+#
+# Everything below has a sensible default in application.yml; override only when needed.
+
+sarvam:
+  api-key: "REPLACE_WITH_SARVAM_API_KEY"   # or set env SARVAM_API_KEY (preferred)
+  base-url: https://api.sarvam.ai
+  realtime-url: wss://api.sarvam.ai/speech-to-text/ws
+  languages:
+    default-target: bn-IN
+    supported:
+      - bn-IN
+      - en-IN
+  models:
+    stt: saaras:v3
+    stt-realtime: saaras:v3-realtime
+    extraction: sarvam-m
+    tts: bulbul:v3
+    translate: sarvam-translate:v1
+  tts:
+    default-speaker: shubh
+    sample-rate: 22050
+  timeout:
+    connect: 3s
+    read: 30s
+  retry:
+    max-attempts: 3
+    initial-backoff: 500ms
