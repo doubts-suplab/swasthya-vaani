@@ -237,3 +237,26 @@ Append entries here; newest last. Format: **context → decision → consequence
   `extractionValid=false` for manual entry — not an error.
 - **Consequence.** The worker can always complete a visit; bad extractions become review
   work, not lost data.
+
+### ADR-006 — Readback = compose → translate → TTS, with English fallback and caching
+- **Context.** The confirmation readback must be in the worker's language, but TTS is
+  metered and the Sarvam-Translate contract is not yet fully verified
+  (`sarvam-integration.md` §7).
+- **Decision.** Compose a formal English summary (`OfficialTextComposer`), translate it to
+  the target language (Sarvam-Translate), then synthesize with Bulbul. Translation failure
+  is **non-fatal** — it falls back to speaking the English text. Synthesized audio is cached
+  (Caffeine, keyed by normalised spoken text + language) so repeated confirmations don't
+  re-synthesize.
+- **Consequence.** One composer feeds both the spoken readback and the official
+  registry-entry text (T2-F06); readback still works if translate is down; TTS cost is
+  bounded. The formal text intentionally includes the beneficiary name — it goes only to the
+  in-India Sarvam endpoint, never to logs (`CLAUDE.md` §7.2).
+
+### ADR-007 — Confirm/edit is a stateless server-side transition (for now)
+- **Context.** Persistence and idempotent sync are Phase 3, but the `DRAFT →
+  CONFIRMED|EDITED` transition must be enforced by the server, not trusted from the client.
+- **Decision.** `POST /confirm` takes the record + an `edited` flag and returns it with the
+  new status and bumped `updatedAt`; a record already `SUPERSEDED` (sync status) is rejected
+  with `409`. No storage yet — the client holds the record between calls.
+- **Consequence.** The state machine is testable and correct in isolation; Phase 3 swaps the
+  in-memory hand-off for DynamoDB + idempotent upsert without changing the transition rules.

@@ -16,13 +16,13 @@ whenever work starts or finishes.
 |---|---|---|---|---|
 | **P0 — Scaffold** | 9 | 0 | 0 | 9 |
 | **P1 — Online happy path** | 6 | 0 | 0 | 6 |
-| **P2 — Readback loop** | 0 | 0 | 4 | 4 |
+| **P2 — Readback loop** | 4 | 0 | 0 | 4 |
 | **P3 — Realtime + offline** | 0 | 0 | 7 | 7 |
 | **P4 — OCR ingest** | 0 | 0 | 3 | 3 |
 | **P5 — Deploy** | 0 | 0 | 4 | 4 |
 | **Continuous (T7)** | 1 | 0 | 2 | 3 |
 
-**Current focus:** Phase 1 complete → begin Phase 2 (Bulbul TTS readback + edit/confirm).
+**Current focus:** Phase 2 complete → begin Phase 3 (realtime STT + offline queue + idempotent sync).
 
 ---
 
@@ -59,10 +59,10 @@ whenever work starts or finishes.
 
 | ID | Feature | Track | Status | Updated | Note |
 |---|---|---|---|---|---|
-| T2-F05 | TTS `bulbul:v3` + cache | T2 | ⬜ | — | |
-| T3-F03 | Readback endpoint + status transitions | T3 | ⬜ | — | |
-| T4-F03 | Play readback + inline edit | T4 | ⬜ | — | |
-| T2-F06 | Sarvam-Translate registry text | T2 | ⬜ | — | |
+| T2-F05 | TTS `bulbul:v3` + cache | T2 | ✅ | 2026-08-28 | `VisitReadbackService` with Caffeine cache keyed by normalised text |
+| T3-F03 | Readback endpoint + status transitions | T3 | ✅ | 2026-08-28 | `/readback` + `/confirm`; `VisitConfirmationService` state machine, 409 on superseded |
+| T4-F03 | Play readback + inline edit | T4 | ✅ | 2026-08-28 | `VisitReview`: editable fields, play TTS, confirm/edit |
+| T2-F06 | Sarvam-Translate registry text | T2 | ✅ | 2026-08-28 | Official text translated for readback; degrades to English on failure |
 
 ---
 
@@ -113,6 +113,11 @@ whenever work starts or finishes.
 
 ## Changelog
 
+- **2026-08-28** — **Phase 2 (readback loop) landed.** Backend: `VisitReadbackService`
+  (compose official text → Sarvam-Translate → Bulbul TTS, Caffeine-cached, degrades to English),
+  `VisitConfirmationService` state machine, `/readback` + `/confirm` endpoints, 409 on invalid
+  transition. Frontend: `VisitReview` — inline field editing, play readback (base64→audio), and
+  confirm/edit. 20 backend + 10 frontend tests green.
 - **2026-08-28** — **Phase 1 (online happy path) landed.** Backend: `VisitTranscriptionService`
   orchestrating STT → extraction → schema validation → `DRAFT` `VisitRecord`, `POST
   /api/v1/visits/transcribe` (reactive multipart), `VisitExtractionValidator`, RFC-7807 error
