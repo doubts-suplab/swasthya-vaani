@@ -1,12 +1,15 @@
 package ai.swasthyavaani.api.visit;
 
 import ai.swasthyavaani.domain.enums.VisitType;
+import ai.swasthyavaani.domain.model.VisitRecord;
 import java.util.Locale;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
@@ -21,9 +24,16 @@ import reactor.core.publisher.Mono;
 public class VisitController {
 
   private final VisitTranscriptionService service;
+  private final VisitReadbackService readbackService;
+  private final VisitConfirmationService confirmationService;
 
-  public VisitController(VisitTranscriptionService service) {
+  public VisitController(
+      VisitTranscriptionService service,
+      VisitReadbackService readbackService,
+      VisitConfirmationService confirmationService) {
     this.service = service;
+    this.readbackService = readbackService;
+    this.confirmationService = confirmationService;
   }
 
   /**
@@ -57,6 +67,29 @@ public class VisitController {
                     state,
                     visitId))
         .flatMap(service::transcribeAndExtract);
+  }
+
+  /**
+   * Speak a draft record back in the worker's language for confirmation (Phase 2). Returns the
+   * spoken text and base64 audio.
+   *
+   * @param visit the record to read back
+   * @param targetLanguage BCP-47 language, or omit for the configured default
+   */
+  @PostMapping(value = "/readback", consumes = MediaType.APPLICATION_JSON_VALUE)
+  public Mono<ReadbackResponse> readback(
+      @RequestBody VisitRecord visit,
+      @RequestParam(value = "targetLanguage", required = false) String targetLanguage) {
+    return readbackService.readback(visit, targetLanguage);
+  }
+
+  /**
+   * Confirm a (possibly edited) record. Applies the {@code DRAFT → CONFIRMED|EDITED} transition and
+   * returns the updated record.
+   */
+  @PostMapping(value = "/confirm", consumes = MediaType.APPLICATION_JSON_VALUE)
+  public Mono<VisitRecord> confirm(@RequestBody ConfirmRequest request) {
+    return Mono.fromSupplier(() -> confirmationService.confirm(request.visit(), request.edited()));
   }
 
   private static Mono<byte[]> toBytes(FilePart file) {

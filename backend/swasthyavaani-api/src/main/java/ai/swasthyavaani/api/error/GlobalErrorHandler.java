@@ -1,5 +1,6 @@
 package ai.swasthyavaani.api.error;
 
+import ai.swasthyavaani.api.visit.InvalidTransitionException;
 import ai.swasthyavaani.sarvam.SarvamException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,13 @@ public class GlobalErrorHandler {
             HttpStatus.BAD_GATEWAY, "The speech service is temporarily unavailable. Please retry.");
     problem.setTitle("Upstream speech service error");
     problem.setProperty("upstreamStatus", ex.status());
+    return problem;
+  }
+
+  @ExceptionHandler(InvalidTransitionException.class)
+  public ProblemDetail handleInvalidTransition(InvalidTransitionException ex) {
+    var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    problem.setTitle("Invalid visit state transition");
     return problem;
   }
 }

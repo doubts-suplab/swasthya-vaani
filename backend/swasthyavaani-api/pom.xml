@@ -36,6 +36,12 @@
       <version>1.5.4</version>
     </dependency>
 
+    <!-- Bounded cache for TTS readback audio (metered — cost control, sarvam-integration.md §10) -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

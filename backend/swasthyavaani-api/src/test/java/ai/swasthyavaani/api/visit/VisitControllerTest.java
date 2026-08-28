@@ -1,6 +1,7 @@
 package ai.swasthyavaani.api.visit;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 import ai.swasthyavaani.api.error.GlobalErrorHandler;
@@ -30,6 +31,8 @@ class VisitControllerTest {
   @Autowired private WebTestClient webTestClient;
 
   @MockitoBean private VisitTranscriptionService service;
+  @MockitoBean private VisitReadbackService readbackService;
+  @MockitoBean private VisitConfirmationService confirmationService;
 
   private static BodyInserters.MultipartInserter audioBody() {
     var mb = new MultipartBodyBuilder();
@@ -103,5 +106,78 @@ class VisitControllerTest {
         .exchange()
         .expectStatus()
         .isEqualTo(502);
+  }
+
+  @Test
+  void readbackReturnsSpokenTextAndAudio() {
+    when(readbackService.readback(any(), any()))
+        .thenReturn(
+            Mono.just(new ReadbackResponse("বাংলা", "বাংলা", "bn-IN", "d2F2", "audio/wav", false)));
+
+    webTestClient
+        .post()
+        .uri("/api/v1/visits/readback")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(VisitTestData.draft())
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.targetLanguage")
+        .isEqualTo("bn-IN")
+        .jsonPath("$.audioBase64")
+        .isEqualTo("d2F2");
+  }
+
+  @Test
+  void confirmReturnsUpdatedRecord() {
+    var confirmed = VisitTestData.draft();
+    when(confirmationService.confirm(any(), anyBoolean()))
+        .thenReturn(
+            new VisitRecord(
+                confirmed.visitId(),
+                1,
+                confirmed.workerId(),
+                confirmed.deviceId(),
+                confirmed.visitType(),
+                confirmed.visitTimestamp(),
+                null,
+                confirmed.beneficiary(),
+                confirmed.observations(),
+                confirmed.actions(),
+                null,
+                ConfirmationStatus.CONFIRMED,
+                SyncStatus.PENDING,
+                false,
+                confirmed.createdAt(),
+                confirmed.updatedAt(),
+                null));
+
+    webTestClient
+        .post()
+        .uri("/api/v1/visits/confirm")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(new ConfirmRequest(confirmed, false))
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.confirmationStatus")
+        .isEqualTo("CONFIRMED");
+  }
+
+  @Test
+  void confirmRejectsSupersededWithConflict() {
+    when(confirmationService.confirm(any(), anyBoolean()))
+        .thenThrow(new InvalidTransitionException("A superseded visit cannot be confirmed."));
+
+    webTestClient
+        .post()
+        .uri("/api/v1/visits/confirm")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(new ConfirmRequest(VisitTestData.draft(), false))
+        .exchange()
+        .expectStatus()
+        .isEqualTo(409);
   }
 }
