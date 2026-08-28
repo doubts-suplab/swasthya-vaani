@@ -21,8 +21,9 @@ whenever work starts or finishes.
 | **P4 — OCR ingest** | 0 | 0 | 3 | 3 |
 | **P5 — Deploy** | 0 | 0 | 4 | 4 |
 | **Continuous (T7)** | 1 | 0 | 2 | 3 |
+| **Mobile / Android (T8)** | 2 | 0 | 2 | 4 |
 
-**Current focus:** Phase 2 complete → begin Phase 3 (realtime STT + offline queue + idempotent sync).
+**Current focus:** Phase 2 + Android shell (Capacitor) done → begin Phase 3 (realtime STT + offline queue + idempotent sync).
 
 ---
 
@@ -101,6 +102,17 @@ whenever work starts or finishes.
 
 ---
 
+## Mobile / Android (Track T8)
+
+| ID | Feature | Status | Updated | Note |
+|---|---|---|---|---|
+| T8-F01 | Capacitor shell + `android/` project | ✅ | 2026-08-28 | Cap 7; `cap doctor` clean; appId `ai.swasthyavaani.app` |
+| T8-F02 | Native-aware voice capture | ✅ | 2026-08-28 | `useVoiceCapture`: plugin on device, MediaRecorder on web |
+| T8-F03 | APK build + distribution runbook | ⬜ | — | Web side ready; needs Android SDK — see `docs/android.md` |
+| T8-F04 | Native offline storage + connectivity | ⬜ | — | Aligns with Phase 3 queue |
+
+---
+
 ## Continuous (Track T7)
 
 | ID | Feature | Status | Updated | Note |
@@ -113,6 +125,10 @@ whenever work starts or finishes.
 
 ## Changelog
 
+- **2026-08-28** — **Android shell (Capacitor) added (T8-F01/F02).** The React PWA is wrapped as
+  a native Android app (Capacitor 7, `frontend/android/`) — one codebase. `useVoiceCapture`
+  selects the native voice-recorder plugin on device and MediaRecorder on web; manifest declares
+  RECORD_AUDIO. APK build documented in `docs/android.md` (needs Android SDK). No backend change.
 - **2026-08-28** — **Phase 2 (readback loop) landed.** Backend: `VisitReadbackService`
   (compose official text → Sarvam-Translate → Bulbul TTS, Caffeine-cached, degrades to English),
   `VisitConfirmationService` state machine, `/readback` + `/confirm` endpoints, 409 on invalid

@@ -260,3 +260,15 @@ Append entries here; newest last. Format: **context → decision → consequence
   with `409`. No storage yet — the client holds the record between calls.
 - **Consequence.** The state machine is testable and correct in isolation; Phase 3 swaps the
   in-memory hand-off for DynamoDB + idempotent upsert without changing the transition rules.
+
+### ADR-008 — Android via Capacitor, not a parallel native app
+- **Context.** The app targets low-end Android field devices. `CLAUDE.md` §3 chose a PWA
+  precisely because it installs on Android; a native artifact (Play Store, more reliable audio)
+  was later requested. A full native Kotlin app would be a second codebase.
+- **Decision.** Wrap the existing React app with **Capacitor** (`frontend/android/`). One
+  codebase serves web and app; native audio comes from `capacitor-voice-recorder`, with a
+  `useVoiceCapture` hook selecting the plugin on-device and `MediaRecorder` on the web. The
+  backend and the `VisitRecord` contract are unchanged.
+- **Consequence.** A single UI to maintain and a Play-Store-ready shell, at the cost of a second
+  build toolchain (Android SDK) needed only to produce the APK. A true native app stays possible
+  later and would reuse this backend + the `VisitRecord` JSON Schema. See `android.md`.

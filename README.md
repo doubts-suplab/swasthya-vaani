@@ -147,8 +147,15 @@ swasthya-vaani/
 │   ├── swasthyavaani-sarvam    # SarvamClient interface + single WebClient impl
 │   └── swasthyavaani-api       # WebFlux app: endpoints, health, wiring
 ├── frontend/              # React PWA (Vite + TS + Workbox)
+│   └── android/                # Capacitor native Android wrapper (same codebase)
 └── scripts/               # dev / seed + synthetic fixtures
 ```
+
+### Android app
+
+The PWA also ships as a native Android app via **Capacitor** — one codebase, native audio
+capture on-device. `cd frontend && pnpm build && pnpm cap:sync && pnpm android:open`
+(APK build needs the Android SDK). See **[`docs/android.md`](./docs/android.md)**.
 
 ---
 
