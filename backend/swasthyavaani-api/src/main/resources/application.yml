@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: swasthyavaani-api
+    version: 0.1.0-SNAPSHOT
+  codec:
+    max-in-memory-size: 16MB
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# --- Sarvam AI (in-India) -------------------------------------------------
+# API key comes from the environment only (SARVAM_API_KEY) — never commit it.
+# Model ids and languages are config-driven (CLAUDE.md §6; architecture.md ADR-003).
+sarvam:
+  api-key: ${SARVAM_API_KEY:}
+  base-url: ${SARVAM_BASE_URL:https://api.sarvam.ai}
+  realtime-url: ${SARVAM_REALTIME_URL:wss://api.sarvam.ai/speech-to-text/ws}
+  languages:
+    default-target: ${SARVAM_DEFAULT_LANGUAGE:bn-IN}
+    supported:
+      - bn-IN
+      - en-IN
+  models:
+    stt: saaras:v3
+    stt-realtime: saaras:v3-realtime
+    extraction: sarvam-m           # verify vs sarvam-105b for your account (sarvam-integration.md §2)
+    tts: bulbul:v3
+    translate: sarvam-translate:v1
+  tts:
+    default-speaker: shubh
+    sample-rate: 22050
+  timeout:
+    connect: 3s
+    read: 30s
+  retry:
+    max-attempts: 3
+    initial-backoff: 500ms
+
+# --- Actuator / health ----------------------------------------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: SwasthyaVaani API
+    region: ap-south-1
+    poc: true
+
+# --- Logging (no PII in logs — CLAUDE.md §7.2) ----------------------------
+logging:
+  level:
+    root: INFO
+    ai.swasthyavaani: DEBUG

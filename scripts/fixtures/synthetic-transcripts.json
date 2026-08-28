@@ -1,0 +1,42 @@
+{
+  "_comment": "Synthetic, code-mixed (Bengali-English) transcripts for tests and demos. NO real patient data (CLAUDE.md §6, §7.2). Expand as a shared fixture library (roadmap T7-F07).",
+  "transcripts": [
+    {
+      "id": "anc-fever-01",
+      "language": "bn-en",
+      "visitType": "ANC",
+      "transcript": "Rekha Das, 24 bochor, 28 weeks pregnant. Weight 52.5 kilo. Thora jor holo kal theke, paye ekTu foola. IFA tablet diye dilam. Next visit egaroi September.",
+      "expectedHighlights": {
+        "beneficiaryName": "Rekha Das",
+        "ageYears": 24,
+        "gestationWeeks": 28,
+        "weightKg": 52.5,
+        "reportedSymptoms": ["fever since yesterday", "mild swelling in feet"],
+        "medicinesHandedOver": ["IFA tablets"],
+        "nextVisitDate": "2026-09-11"
+      }
+    },
+    {
+      "id": "child-growth-01",
+      "language": "bn-en",
+      "visitType": "CHILD_GROWTH",
+      "transcript": "Baby-r naam Suman, 8 mash boyosh. Weight thik aache, 7 kilo. Ekhon kono symptom nei. Immunization er jonno Bishnupur PHC te refer korlam.",
+      "expectedHighlights": {
+        "beneficiaryName": "Suman",
+        "ageMonths": 8,
+        "weightKg": 7.0,
+        "referralFacility": "Bishnupur PHC"
+      }
+    },
+    {
+      "id": "pnc-referral-01",
+      "language": "bn-en",
+      "visitType": "PNC",
+      "transcript": "Mother-er onek bleeding hocche, khub weak lagche. Urgent refer korlam PHC te, ekkhuni jete hobe.",
+      "expectedHighlights": {
+        "reportedSymptoms": ["heavy bleeding", "weakness"],
+        "referralUrgency": "URGENT"
+      }
+    }
+  ]
+}

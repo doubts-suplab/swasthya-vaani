@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.4.2</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>ai.swasthyavaani</groupId>
+  <artifactId>swasthyavaani-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>SwasthyaVaani :: Parent</name>
+  <description>Voice-first, offline-capable field documentation for India's frontline health workers</description>
+
+  <modules>
+    <module>swasthyavaani-domain</module>
+    <module>swasthyavaani-sarvam</module>
+    <module>swasthyavaani-api</module>
+  </modules>
+
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Internal module version, kept in lockstep with the parent -->
+    <swasthyavaani.version>0.1.0-SNAPSHOT</swasthyavaani.version>
+
+    <!-- Plugin versions -->
+    <spotless.version>2.43.0</spotless.version>
+    <google-java-format.version>1.23.0</google-java-format.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Internal modules -->
+      <dependency>
+        <groupId>ai.swasthyavaani</groupId>
+        <artifactId>swasthyavaani-domain</artifactId>
+        <version>${swasthyavaani.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.swasthyavaani</groupId>
+        <artifactId>swasthyavaani-sarvam</artifactId>
+        <version>${swasthyavaani.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <!-- Enforce Google Java Format across the codebase (CLAUDE.md §5).
+             Run `./mvnw spotless:apply` to auto-format; `spotless:check`
+             is bound to the verify phase. -->
+        <plugin>
+          <groupId>com.diffplug.spotless</groupId>
+          <artifactId>spotless-maven-plugin</artifactId>
+          <version>${spotless.version}</version>
+          <configuration>
+            <java>
+              <googleJavaFormat>
+                <version>${google-java-format.version}</version>
+                <style>GOOGLE</style>
+              </googleJavaFormat>
+              <removeUnusedImports/>
+              <trimTrailingWhitespace/>
+              <endWithNewline/>
+            </java>
+          </configuration>
+          <executions>
+            <execution>
+              <id>spotless-check</id>
+              <phase>verify</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

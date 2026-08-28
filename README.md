@@ -119,11 +119,15 @@ git clone <your-repo-url> swasthya-vaani && cd swasthya-vaani
 cp backend/.env.example backend/.env       # add SARVAM_API_KEY etc.
 cp frontend/.env.example frontend/.env
 
-# backend
-cd backend && ./mvnw spring-boot:run
+# backend (multi-module Maven reactor: domain + sarvam + api)
+cd backend && ./mvnw -pl swasthyavaani-api -am spring-boot:run
+#   health: http://localhost:8080/actuator/health   ping: http://localhost:8080/api/v1/ping
 
 # frontend (new terminal)
 cd frontend && pnpm install && pnpm dev
+
+# ...or start both at once
+./scripts/dev.sh
 ```
 
 Open the printed local URL, install the PWA, and try a recording. See `CLAUDE.md` for the full command list and build phases.
@@ -136,23 +140,31 @@ Open the printed local URL, install the PWA, and try a recording. See `CLAUDE.md
 swasthya-vaani/
 ├── CLAUDE.md              # build guidance for Claude Code
 ├── README.md
-├── docs/                  # architecture, Sarvam integration, data model
-├── infra/                 # AWS CDK (TypeScript)
-├── backend/               # Spring Boot service
-├── frontend/              # React PWA
-└── scripts/               # dev / setup / seed
+├── docs/                  # architecture, Sarvam integration, data model, roadmap, progress
+├── infra/                 # AWS CDK (TypeScript) — Phase 5
+├── backend/               # Spring Boot service (multi-module Maven)
+│   ├── swasthyavaani-domain    # pure records + enums (the shared contract)
+│   ├── swasthyavaani-sarvam    # SarvamClient interface + single WebClient impl
+│   └── swasthyavaani-api       # WebFlux app: endpoints, health, wiring
+├── frontend/              # React PWA (Vite + TS + Workbox)
+└── scripts/               # dev / seed + synthetic fixtures
 ```
 
 ---
 
 ## Roadmap
 
-- [ ] **Phase 0** — Repo scaffold, `SarvamClient` abstraction, health checks
+- [x] **Phase 0** — Repo scaffold, `SarvamClient` abstraction, health checks
 - [ ] **Phase 1** — Online happy path: record → STT → extraction → structured record
 - [ ] **Phase 2** — Bulbul TTS readback + edit-and-correct
 - [ ] **Phase 3** — Realtime STT + full offline queue and idempotent sync
 - [ ] **Phase 4** — Sarvam Vision OCR ingest of paper records
 - [ ] **Phase 5** — CDK deploy to `ap-south-1` + runbook
+
+Full breakdown by track and feature is in **[`docs/roadmap.md`](./docs/roadmap.md)**; live
+status is tracked in **[`docs/progress.md`](./docs/progress.md)**. Architecture and verified
+Sarvam contracts: **[`docs/architecture.md`](./docs/architecture.md)** ·
+**[`docs/sarvam-integration.md`](./docs/sarvam-integration.md)**.
 
 ---
 
