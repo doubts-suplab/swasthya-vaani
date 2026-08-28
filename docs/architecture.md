@@ -215,3 +215,25 @@ Append entries here; newest last. Format: **context → decision → consequence
 - **Consequence.** Swapping a model is a config change, not a code change; the CLAUDE.md
   mapping is honoured at the capability level even where the concrete id evolved. See
   `sarvam-integration.md` §2.
+
+### ADR-004 — Phase 1 draft response shape & `visitId` fallback
+- **Context.** The transcribe endpoint must return the structured record *and* the raw
+  transcript (so the UI can fall back to manual entry when extraction doesn't validate),
+  and a client may not yet supply the client-generated `visitId` (that becomes mandatory
+  for offline idempotency in Phase 3).
+- **Decision.** Return a `VisitDraftResponse { visit, transcript, extractionValid,
+  validationMessages }` rather than a bare `VisitRecord`. The transcript is *not* stuffed
+  into the record (it stays an S3 pointer per `data-model.md` §2). If the request omits
+  `visitId`, the server generates a UUID v4; when the client supplies one it is honoured.
+- **Consequence.** The UI always has the transcript for review/manual entry; every visit is
+  `DRAFT`/`PENDING` at this stage. Phase 3 tightens `visitId` to client-supplied-always for
+  exactly-once sync, and moves audio/transcript to S3.
+
+### ADR-005 — Extraction failures degrade, they don't 500
+- **Context.** `sarvam-m` can occasionally return non-conformant JSON; the field must never
+  lose a visit over it (`CLAUDE.md` §5, §7.5).
+- **Decision.** STT failure surfaces as `502` (upstream) via `GlobalErrorHandler`, but an
+  extraction/validation failure returns a `DRAFT` with the transcript and
+  `extractionValid=false` for manual entry — not an error.
+- **Consequence.** The worker can always complete a visit; bad extractions become review
+  work, not lost data.

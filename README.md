@@ -155,7 +155,7 @@ swasthya-vaani/
 ## Roadmap
 
 - [x] **Phase 0** — Repo scaffold, `SarvamClient` abstraction, health checks
-- [ ] **Phase 1** — Online happy path: record → STT → extraction → structured record
+- [x] **Phase 1** — Online happy path: record → STT → extraction → structured record
 - [ ] **Phase 2** — Bulbul TTS readback + edit-and-correct
 - [ ] **Phase 3** — Realtime STT + full offline queue and idempotent sync
 - [ ] **Phase 4** — Sarvam Vision OCR ingest of paper records

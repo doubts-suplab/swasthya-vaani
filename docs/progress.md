@@ -15,14 +15,14 @@ whenever work starts or finishes.
 | Phase | Done | In progress | Not started | Total |
 |---|---|---|---|---|
 | **P0 — Scaffold** | 9 | 0 | 0 | 9 |
-| **P1 — Online happy path** | 0 | 0 | 6 | 6 |
+| **P1 — Online happy path** | 6 | 0 | 0 | 6 |
 | **P2 — Readback loop** | 0 | 0 | 4 | 4 |
 | **P3 — Realtime + offline** | 0 | 0 | 7 | 7 |
 | **P4 — OCR ingest** | 0 | 0 | 3 | 3 |
 | **P5 — Deploy** | 0 | 0 | 4 | 4 |
-| **Continuous (T7)** | 0 | 0 | 3 | 3 |
+| **Continuous (T7)** | 1 | 0 | 2 | 3 |
 
-**Current focus:** Phase 0 complete → begin Phase 1 (Track T2/T3 online happy path).
+**Current focus:** Phase 1 complete → begin Phase 2 (Bulbul TTS readback + edit/confirm).
 
 ---
 
@@ -46,12 +46,12 @@ whenever work starts or finishes.
 
 | ID | Feature | Track | Status | Updated | Note |
 |---|---|---|---|---|---|
-| T2-F02 | Batch STT `saaras:v3` behind client | T2 | ⬜ | — | |
-| T2-F03 | Extraction `sarvam-m` → `VisitExtraction` | T2 | ⬜ | — | |
-| T7-F03 | Extraction JSON-Schema validation | T7 | ⬜ | — | |
-| T3-F02 | `POST /api/v1/visits/transcribe` | T3 | ⬜ | — | |
-| T4-F02 | Record → API → render record | T4 | ⬜ | — | |
-| T2-F04 | Code-mixed extraction prompt | T2 | ⬜ | — | |
+| T2-F02 | Batch STT `saaras:v3` behind client | T2 | ✅ | 2026-08-28 | `transcribe()` used by pipeline; MockWebServer contract test |
+| T2-F03 | Extraction `sarvam-m` → `VisitExtraction` | T2 | ✅ | 2026-08-28 | `extractVisit()` with fence-stripping; contract test |
+| T7-F03 | Extraction JSON-Schema validation | T7 | ✅ | 2026-08-28 | `VisitExtractionValidator` vs `data-model.md` §5; invalid → DRAFT |
+| T3-F02 | `POST /api/v1/visits/transcribe` | T3 | ✅ | 2026-08-28 | Reactive multipart → `VisitDraftResponse`; 502 on upstream fail |
+| T4-F02 | Record → API → render record | T4 | ✅ | 2026-08-28 | MediaRecorder capture → upload → `VisitRecordView` |
+| T2-F04 | Code-mixed extraction prompt | T2 | ✅ | 2026-08-28 | Bengali-English + controlled-vocab system prompt |
 
 ---
 
@@ -107,12 +107,17 @@ whenever work starts or finishes.
 |---|---|---|---|---|
 | T7-F05 | No-PII-in-logs enforcement | ⬜ | — | |
 | T7-F06 | Observability (correlation id, metrics) | ⬜ | — | |
-| T7-F07 | Synthetic fixture library | ⬜ | — | |
+| T7-F07 | Synthetic fixture library | ✅ | 2026-08-28 | `scripts/fixtures/synthetic-transcripts.json` (code-mixed); grow over time |
 
 ---
 
 ## Changelog
 
+- **2026-08-28** — **Phase 1 (online happy path) landed.** Backend: `VisitTranscriptionService`
+  orchestrating STT → extraction → schema validation → `DRAFT` `VisitRecord`, `POST
+  /api/v1/visits/transcribe` (reactive multipart), `VisitExtractionValidator`, RFC-7807 error
+  handling, injectable `Clock`. Frontend: MediaRecorder capture hook, visit API client, and the
+  `VisitRecordView` review UI. 10 backend + 7 frontend tests green.
 - **2026-08-28** — Phase 0 scaffold landed: docs (architecture, Sarvam integration,
   roadmap, progress), multi-module Maven backend (domain/sarvam/api) with `SarvamClient`
   seam and health checks, React PWA skeleton, CI stub.
