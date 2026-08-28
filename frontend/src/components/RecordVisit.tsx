@@ -1,15 +1,24 @@
 import { useState } from 'react';
 import { transcribeVisit } from '../api/visitApi';
-import { useAudioRecorder } from '../hooks/useAudioRecorder';
+import { useVoiceCapture } from '../hooks/useVoiceCapture';
 import type { VisitDraftResponse, VisitRecord } from '../types/visit';
 import { VisitRecordView } from './VisitRecordView';
 import { VisitReview } from './VisitReview';
 
 type Phase = 'capture' | 'processing' | 'review' | 'confirmed';
 
+/** Map an audio MIME type to a filename extension the backend/Sarvam accept. */
+function extensionFor(mimeType: string): string {
+  if (mimeType.includes('webm')) return 'webm';
+  if (mimeType.includes('aac')) return 'aac';
+  if (mimeType.includes('mp4') || mimeType.includes('m4a')) return 'm4a';
+  if (mimeType.includes('ogg')) return 'ogg';
+  return 'wav';
+}
+
 /** Phase 1 capture flow: record → upload → review the extracted draft. */
 export function RecordVisit() {
-  const recorder = useAudioRecorder();
+  const recorder = useVoiceCapture();
   const [phase, setPhase] = useState<Phase>('capture');
   const [draft, setDraft] = useState<VisitDraftResponse | null>(null);
   const [confirmed, setConfirmed] = useState<VisitRecord | null>(null);
@@ -20,7 +29,7 @@ export function RecordVisit() {
     setPhase('processing');
     setError(null);
     try {
-      const ext = recorder.recording.mimeType.includes('webm') ? 'webm' : 'wav';
+      const ext = extensionFor(recorder.recording.mimeType);
       const result = await transcribeVisit(recorder.recording.blob, `visit.${ext}`, {
         languageCode: 'bn-IN',
       });

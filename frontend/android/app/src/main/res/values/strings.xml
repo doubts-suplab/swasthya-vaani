@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SwasthyaVaani</string>
+    <string name="title_activity_main">SwasthyaVaani</string>
+    <string name="package_name">ai.swasthyavaani.app</string>
+    <string name="custom_url_scheme">ai.swasthyavaani.app</string>
+</resources>
