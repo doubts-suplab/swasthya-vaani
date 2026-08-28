@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { transcribeVisit } from '../api/visitApi';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
-import type { VisitDraftResponse } from '../types/visit';
+import type { VisitDraftResponse, VisitRecord } from '../types/visit';
 import { VisitRecordView } from './VisitRecordView';
+import { VisitReview } from './VisitReview';
 
-type Phase = 'capture' | 'processing' | 'result';
+type Phase = 'capture' | 'processing' | 'review' | 'confirmed';
 
 /** Phase 1 capture flow: record → upload → review the extracted draft. */
 export function RecordVisit() {
   const recorder = useAudioRecorder();
   const [phase, setPhase] = useState<Phase>('capture');
   const [draft, setDraft] = useState<VisitDraftResponse | null>(null);
+  const [confirmed, setConfirmed] = useState<VisitRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
@@ -23,7 +25,7 @@ export function RecordVisit() {
         languageCode: 'bn-IN',
       });
       setDraft(result);
-      setPhase('result');
+      setPhase('review');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
       setPhase('capture');
@@ -33,6 +35,7 @@ export function RecordVisit() {
   function startOver() {
     recorder.reset();
     setDraft(null);
+    setConfirmed(null);
     setError(null);
     setPhase('capture');
   }
@@ -41,10 +44,25 @@ export function RecordVisit() {
     return <p className="muted">Audio recording isn’t supported on this device/browser.</p>;
   }
 
-  if (phase === 'result' && draft) {
+  if (phase === 'review' && draft) {
+    return (
+      <VisitReview
+        draft={draft}
+        onConfirmed={(record) => {
+          setConfirmed(record);
+          setPhase('confirmed');
+        }}
+      />
+    );
+  }
+
+  if (phase === 'confirmed' && draft && confirmed) {
     return (
       <div>
-        <VisitRecordView draft={draft} />
+        <div className="alert alert--ok" role="status">
+          ✓ Visit {confirmed.confirmationStatus.toLowerCase()} — queued to sync.
+        </div>
+        <VisitRecordView draft={{ ...draft, visit: confirmed }} />
         <button className="cta cta--enabled" type="button" onClick={startOver}>
           Record another visit
         </button>

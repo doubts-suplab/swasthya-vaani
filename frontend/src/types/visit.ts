@@ -89,3 +89,12 @@ export interface VisitDraftResponse {
   extractionValid: boolean;
   validationMessages: string[];
 }
+
+export interface ReadbackResponse {
+  spokenText: string;
+  officialText: string;
+  targetLanguage: string;
+  audioBase64: string;
+  audioContentType: string;
+  cached: boolean;
+}
