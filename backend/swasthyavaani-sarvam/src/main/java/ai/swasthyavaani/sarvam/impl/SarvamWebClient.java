@@ -256,16 +256,30 @@ public class SarvamWebClient implements SarvamClient {
   private static final class ExtractionPrompt {
     private static final String SYSTEM =
         """
-        You convert a health worker's dictated home-visit transcript into a structured record.
-        Output STRICT JSON ONLY — no prose, no markdown fences. Shape:
-        {"beneficiary":{...},"observations":{...},"actions":{...},"warnings":[...]}.
+        You convert an ASHA/ANM health worker's dictated home-visit transcript into a structured
+        record. The speech is code-mixed Bengali + English (e.g. "baby-r weight thik aache, kintu
+        fever holo kal theke") — understand both languages and Romanised Bengali.
+
+        Output STRICT JSON ONLY — no prose, no markdown fences. Exact shape:
+        {"beneficiary":{"name","category","gender","ageYears"},
+         "observations":{"weightKg","temperatureC","bloodPressure":{"systolic","diastolic"},
+                         "gestationWeeks","reportedSymptoms":[],"notes"},
+         "actions":{"medicinesHandedOver":[],"referral":{"referred","facility","urgency","reason"},
+                    "nextVisitDate"},
+         "warnings":[]}
+
+        Controlled vocabulary (use these exact values or null):
+        - category: PREGNANT_WOMAN | LACTATING_MOTHER | INFANT | CHILD_UNDER_5 | ADULT | OTHER
+        - gender:   FEMALE | MALE | OTHER
+        - referral.urgency: ROUTINE | URGENT | EMERGENCY
+
         Rules:
         1. Any field not clearly stated in the transcript -> null (or omit arrays). NEVER fabricate.
         2. If a value is inferred rather than explicit, still fill it and add a human-readable note
-           to "warnings".
-        3. Numbers are numbers, not strings; dates are ISO-8601 (YYYY-MM-DD).
+           to "warnings" (e.g. "temperatureC inferred from 'thora jor' — confirm with worker").
+        3. Numbers are numbers, not strings; dates are ISO-8601 (YYYY-MM-DD); weight in kg, temp °C.
         4. No diagnosis and no medication advice — only medicines the worker says were handed over.
-        5. reportedSymptoms are the worker's own words, not a clinical judgement.
+        5. reportedSymptoms are the worker's own words translated to English, not a clinical judgement.
         """;
 
     private static String user(ExtractionRequest request) {

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VisitExtraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["beneficiary", "observations", "actions", "warnings"],
+  "properties": {
+    "beneficiary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "category": {
+          "enum": [
+            "PREGNANT_WOMAN",
+            "LACTATING_MOTHER",
+            "INFANT",
+            "CHILD_UNDER_5",
+            "ADULT",
+            "OTHER",
+            null
+          ]
+        },
+        "gender": { "enum": ["FEMALE", "MALE", "OTHER", null] },
+        "ageYears": { "type": ["integer", "null"], "minimum": 0, "maximum": 120 }
+      }
+    },
+    "observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "weightKg": { "type": ["number", "null"] },
+        "temperatureC": { "type": ["number", "null"] },
+        "bloodPressure": {
+          "type": ["object", "null"],
+          "properties": {
+            "systolic": { "type": "integer" },
+            "diastolic": { "type": "integer" }
+          }
+        },
+        "gestationWeeks": { "type": ["integer", "null"], "minimum": 0, "maximum": 45 },
+        "reportedSymptoms": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "actions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "medicinesHandedOver": { "type": "array", "items": { "type": "string" } },
+        "referral": {
+          "type": ["object", "null"],
+          "properties": {
+            "referred": { "type": "boolean" },
+            "facility": { "type": ["string", "null"] },
+            "urgency": { "enum": ["ROUTINE", "URGENT", "EMERGENCY", null] },
+            "reason": { "type": ["string", "null"] }
+          }
+        },
+        "nextVisitDate": { "type": ["string", "null"], "format": "date" }
+      }
+    },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}
