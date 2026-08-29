@@ -17,13 +17,13 @@ whenever work starts or finishes.
 | **P0 — Scaffold** | 9 | 0 | 0 | 9 |
 | **P1 — Online happy path** | 6 | 0 | 0 | 6 |
 | **P2 — Readback loop** | 4 | 0 | 0 | 4 |
-| **P3 — Realtime + offline** | 4 | 0 | 3 | 7 |
+| **P3 — Realtime + offline** | 5 | 1 | 1 | 7 |
 | **P4 — OCR ingest** | 3 | 0 | 0 | 3 |
-| **P5 — Deploy** | 0 | 0 | 4 | 4 |
+| **P5 — Deploy** | 3 | 1 | 0 | 4 |
 | **Continuous (T7)** | 1 | 0 | 2 | 3 |
 | **Mobile / Android (T8)** | 2 | 0 | 2 | 4 |
 
-**Current focus:** Phases 0–4 feature-complete (P3's DynamoDB/SQS/S3 provisioning deferred to P5). Next: **Phase 5 (Deploy)** — CDK stack for `ap-south-1` + the remaining T5 data-plane behind the existing `VisitRepository` seam.
+**Current focus:** All six phases landed. Data plane deployed via CDK (`ap-south-1`) and the durable DynamoDB store closes the sync seam. Remaining polish: async **SQS worker** (T5-F03), **S3 blob upload** (T5-F04), and the **ECR/ECS compute stack** (T6-F02) — none blocking the PoC definition of done. A live `cdk deploy` + Sarvam/AWS integration run needs the user's credentials.
 
 ---
 
@@ -74,10 +74,10 @@ whenever work starts or finishes.
 | T2-F07 | Proxy `saaras:v3-realtime` WSS | T2 | ✅ | 2026-08-28 | `/ws/stt` proxy, key server-side; frame protocol **pending live verification** (sarvam-integration §4) |
 | T4-F04 | IndexedDB queue + service worker | T4 | ✅ | 2026-08-28 | `visitQueue` (idb) + Workbox SW; visit completes fully offline |
 | T4-F05 | Reconcile-on-reconnect | T4 | ✅ | 2026-08-28 | `syncEngine.drainQueue` + `useSyncQueue`; drains on reconnect, no loss |
-| T5-F01 | DynamoDB single-table + GSIs | T5 | ⬜ | — | Infra → **Phase 5**; `VisitRepository` seam ready |
-| T5-F02 | Idempotent upsert on `visitId` | T5 | ✅ | 2026-08-28 | `VisitRepository`/`VisitSyncService` last-writer-wins; in-memory now, DynamoDB in P5 |
-| T5-F03 | SQS sync queue + worker | T5 | ⬜ | — | Infra → **Phase 5** |
-| T5-F04 | S3 artifact upload | T5 | ⬜ | — | Infra → **Phase 5** |
+| T5-F01 | DynamoDB single-table + GSIs | T5 | ✅ | 2026-08-29 | CDK table+3 GSIs + `DynamoDbVisitRepository` (aws profile); `VisitItem` mapping unit-tested |
+| T5-F02 | Idempotent upsert on `visitId` | T5 | ✅ | 2026-08-28 | `VisitRepository`/`VisitSyncService` last-writer-wins; durable via DynamoDB conditional write |
+| T5-F03 | SQS sync queue + worker | T5 | 🟨 | 2026-08-29 | Queue+DLQ provisioned in CDK; async worker not yet wired (sync is synchronous) |
+| T5-F04 | S3 artifact upload | T5 | ⬜ | — | Bucket provisioned in CDK; blob upload not yet wired |
 
 ---
 
@@ -95,10 +95,10 @@ whenever work starts or finishes.
 
 | ID | Feature | Track | Status | Updated | Note |
 |---|---|---|---|---|---|
-| T6-F01 | CDK: DynamoDB+S3+SQS in `ap-south-1` | T6 | ⬜ | — | |
-| T6-F02 | API deploy + secrets wiring | T6 | ⬜ | — | |
-| T6-F03 | Runbook + residency/PII checklist | T6 | ⬜ | — | |
-| T7-F04 | Residency guard in CI | T7 | ⬜ | — | |
+| T6-F01 | CDK: DynamoDB+S3+SQS in `ap-south-1` | T6 | ✅ | 2026-08-29 | `infra/` CDK app; encryption/TLS/PITR; `cdk synth` clean, 6 tests |
+| T6-F02 | API deploy + secrets wiring | T6 | 🟨 | 2026-08-29 | `aws` profile + config/env/IAM documented; ECR/ECS compute stack not yet scripted |
+| T6-F03 | Runbook + residency/PII checklist | T6 | ✅ | 2026-08-29 | `docs/runbook.md` |
+| T7-F04 | Residency guard in CI | T7 | ✅ | 2026-08-29 | `residency.ts` fails synth off-India; app refuses non-`ap-south-1`; CI infra job |
 
 ---
 
@@ -125,6 +125,12 @@ whenever work starts or finishes.
 
 ## Changelog
 
+- **2026-08-29** — **Phase 5 (Deploy) landed.** `infra/` AWS CDK app (DynamoDB single-table + 3
+  GSIs, S3 artifacts bucket, SQS + DLQ) pinned to `ap-south-1`, all encrypted/TLS/private;
+  synth-time **residency guard** (T7-F04) + 6 CDK tests. Backend: durable `DynamoDbVisitRepository`
+  behind the `aws` profile (in-memory stays default), unit-tested `VisitItem` single-table mapping,
+  `application-aws.yml`, IST-offset-preserving Jackson config. `docs/runbook.md` + residency/PII
+  checklist; CI infra job. Remaining: SQS worker, S3 upload, ECR/ECS compute stack.
 - **2026-08-28** — **Phase 4 (OCR ingest) landed.** `SarvamClient.ocr` (Document AI digitise,
   endpoint pending live verification); `VisitOcrService` runs OCR text through the same extraction
   + validation as speech via a shared `VisitAssembler` (extracted from the transcription service);

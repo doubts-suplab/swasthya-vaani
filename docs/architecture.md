@@ -310,3 +310,19 @@ Append entries here; newest last. Format: **context → decision → consequence
 - **Consequence.** Paper and voice converge on one schema, one validator, one review/confirm/sync
   loop; the only OCR-specific code is the vendor call + a thin service. Trade-off: the async
   digitise job lifecycle may need adding once verified against live Sarvam.
+
+### ADR-012 — Phase 5: CDK data plane + DynamoDB single-table adapter (JSON body)
+- **Context.** Phase 3 built idempotent sync against an in-memory store behind `VisitRepository`;
+  Phase 5 makes it durable in `ap-south-1` without changing callers, and provisions the data plane
+  as code with residency enforced.
+- **Decision.** An AWS CDK app (`infra/`) provisions DynamoDB (single-table + 3 GSIs), an S3
+  artifacts bucket, and an SQS queue+DLQ — all `ap-south-1`, encrypted, TLS-only, private, with a
+  **synth-time residency guard** (`residency.ts`, T7-F04). The backend adds `DynamoDbVisitRepository`
+  under the `aws` profile: items store the record as a JSON `body` plus derived single-table keys
+  (`VisitItem`), and upsert uses a **conditional write** (`attribute_not_exists(PK) OR updatedAt <
+  :ua`) for the same last-writer-wins idempotency as the in-memory store. Jackson is configured to
+  preserve the IST offset through round-trips.
+- **Consequence.** The sync seam closes durably with no caller changes; the JSON-body item avoids a
+  per-field mapping migration as the schema evolves, at the cost of not being able to server-side
+  filter on nested fields (fine — access patterns use the keys/GSIs). SQS worker, S3 blob upload,
+  and the ECR/ECS compute stack remain as follow-ups (see `runbook.md`).

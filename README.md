@@ -166,12 +166,13 @@ capture on-device. `cd frontend && pnpm build && pnpm cap:sync && pnpm android:o
 - [x] **Phase 2** — Bulbul TTS readback + edit-and-correct
 - [~] **Phase 3** — Offline queue + idempotent sync + realtime STT proxy *(core done; DynamoDB/SQS/S3 provisioning lands in Phase 5)*
 - [x] **Phase 4** — Sarvam Vision OCR ingest of paper records
-- [ ] **Phase 5** — CDK deploy to `ap-south-1` + runbook
+- [x] **Phase 5** — CDK data plane in `ap-south-1` (DynamoDB/S3/SQS) + durable store + runbook *(SQS worker, S3 upload, compute stack are follow-ups)*
 
 Full breakdown by track and feature is in **[`docs/roadmap.md`](./docs/roadmap.md)**; live
 status is tracked in **[`docs/progress.md`](./docs/progress.md)**. Architecture and verified
 Sarvam contracts: **[`docs/architecture.md`](./docs/architecture.md)** ·
-**[`docs/sarvam-integration.md`](./docs/sarvam-integration.md)**.
+**[`docs/sarvam-integration.md`](./docs/sarvam-integration.md)**. Deploy:
+**[`docs/runbook.md`](./docs/runbook.md)**.
 
 ---
 
