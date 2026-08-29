@@ -1,0 +1,9 @@
+# Activated with SPRING_PROFILES_ACTIVE=aws (the deployed configuration).
+# Swaps the in-memory store for DynamoDB. Region is pinned to India and enforced at startup.
+#
+# Credentials come from the standard AWS chain (IAM role on ECS/EC2 — never static keys in config).
+
+aws:
+  region: ${AWS_REGION:ap-south-1}
+  table-name: ${SWASTHYAVAANI_TABLE:swasthyavaani}
+  # dynamo-endpoint: http://localhost:8000   # uncomment for DynamoDB Local / LocalStack only

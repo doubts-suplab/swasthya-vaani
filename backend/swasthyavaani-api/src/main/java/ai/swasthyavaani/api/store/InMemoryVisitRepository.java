@@ -5,17 +5,19 @@ import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * In-memory {@link VisitRepository} for the Phase 3 PoC. Thread-safe and idempotent; it models the
- * exact upsert semantics the DynamoDB implementation must honour (conditional write / dedup via
- * GSI2, {@code data-model.md} §6, §7), so the sync logic and its tests are correct before any AWS
- * wiring exists (Phase 5).
+ * In-memory {@link VisitRepository} — the default store, used everywhere except the {@code aws}
+ * profile (where {@code DynamoDbVisitRepository} takes over). Thread-safe and idempotent; it models
+ * the exact upsert semantics the DynamoDB implementation must honour (conditional write / dedup via
+ * GSI2, {@code data-model.md} §6, §7), so the sync logic and its tests are correct without AWS.
  */
 @Repository
+@Profile("!aws")
 public class InMemoryVisitRepository implements VisitRepository {
 
   private final ConcurrentHashMap<String, VisitRecord> store = new ConcurrentHashMap<>();

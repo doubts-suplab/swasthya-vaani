@@ -42,6 +42,16 @@
       <artifactId>caffeine</artifactId>
     </dependency>
 
+    <!-- AWS SDK v2 — DynamoDB (durable VisitRepository, Phase 5; active under the 'aws' profile) -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>dynamodb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>netty-nio-client</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
