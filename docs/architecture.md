@@ -297,3 +297,16 @@ Append entries here; newest last. Format: **context → decision → consequence
 - **Consequence.** The architecture (key server-side, streaming) is in place and reviewable now,
   without over-claiming a verified realtime pipeline. Flipping to realtime is a front-end + protocol
   confirmation step, not new plumbing.
+
+### ADR-011 — OCR ingest reuses the extraction + assembly path
+- **Context.** A photographed paper register must land in the *same* `VisitRecord` schema and
+  review loop as a spoken visit — not a parallel pipeline.
+- **Decision.** Add `SarvamClient.ocr` (Sarvam Document AI digitise) and feed its text through the
+  **same** `sarvam-m` extraction + JSON-Schema validation as a transcript. Record construction was
+  extracted into a shared `VisitAssembler` used by both the spoken (`VisitTranscriptionService`) and
+  OCR (`VisitOcrService`) paths; OCR records carry `provenance.sttModel = null` and a "via OCR"
+  warning. The digitise endpoint/job-lifecycle is marked pending live verification
+  (`sarvam-integration.md` §8), like the realtime channel.
+- **Consequence.** Paper and voice converge on one schema, one validator, one review/confirm/sync
+  loop; the only OCR-specific code is the vendor call + a thin service. Trade-off: the async
+  digitise job lifecycle may need adding once verified against live Sarvam.

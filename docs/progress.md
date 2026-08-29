@@ -18,12 +18,12 @@ whenever work starts or finishes.
 | **P1 — Online happy path** | 6 | 0 | 0 | 6 |
 | **P2 — Readback loop** | 4 | 0 | 0 | 4 |
 | **P3 — Realtime + offline** | 4 | 0 | 3 | 7 |
-| **P4 — OCR ingest** | 0 | 0 | 3 | 3 |
+| **P4 — OCR ingest** | 3 | 0 | 0 | 3 |
 | **P5 — Deploy** | 0 | 0 | 4 | 4 |
 | **Continuous (T7)** | 1 | 0 | 2 | 3 |
 | **Mobile / Android (T8)** | 2 | 0 | 2 | 4 |
 
-**Current focus:** Phase 3 core done (offline queue + idempotent sync + realtime proxy) → the remaining P3 items (DynamoDB / SQS / S3 provisioning) are infra and land with **Phase 5 (Deploy)**. Next: **Phase 4 (OCR)** or Phase 5.
+**Current focus:** Phases 0–4 feature-complete (P3's DynamoDB/SQS/S3 provisioning deferred to P5). Next: **Phase 5 (Deploy)** — CDK stack for `ap-south-1` + the remaining T5 data-plane behind the existing `VisitRepository` seam.
 
 ---
 
@@ -85,9 +85,9 @@ whenever work starts or finishes.
 
 | ID | Feature | Track | Status | Updated | Note |
 |---|---|---|---|---|---|
-| T2-F08 | Sarvam Vision OCR | T2 | ⬜ | — | |
-| T3-F04 | OCR → `VisitExtraction` mapping | T3 | ⬜ | — | |
-| T4-F06 | Photo-capture + review UI | T4 | ⬜ | — | |
+| T2-F08 | Sarvam Vision OCR | T2 | ✅ | 2026-08-28 | `SarvamClient.ocr` (Document AI digitise); endpoint/job-lifecycle **pending live verification** (§8) |
+| T3-F04 | OCR → `VisitExtraction` mapping | T3 | ✅ | 2026-08-28 | `VisitOcrService` + shared `VisitAssembler`; same schema/validation as spoken path; `/ingest-photo` |
+| T4-F06 | Photo-capture + review UI | T4 | ✅ | 2026-08-28 | `RecordVisit` photo capture → OCR → same `VisitReview` loop |
 
 ---
 
@@ -125,6 +125,11 @@ whenever work starts or finishes.
 
 ## Changelog
 
+- **2026-08-28** — **Phase 4 (OCR ingest) landed.** `SarvamClient.ocr` (Document AI digitise,
+  endpoint pending live verification); `VisitOcrService` runs OCR text through the same extraction
+  + validation as speech via a shared `VisitAssembler` (extracted from the transcription service);
+  `POST /visits/ingest-photo`; frontend photo capture in `RecordVisit` → same review/confirm/offline
+  loop. 32 backend + 18 frontend tests green.
 - **2026-08-28** — **Phase 3 core landed (offline-first + realtime proxy).** Backend:
   `VisitRepository`/`InMemoryVisitRepository` + `VisitSyncService` (idempotent upsert, last-writer-
   wins), `POST /visits/sync` + `GET /visits/{id}`, and a `/ws/stt` realtime proxy that keeps the

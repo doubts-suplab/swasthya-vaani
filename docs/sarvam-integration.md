@@ -170,6 +170,13 @@ exposes (Aug 2026). The id is always a config value under `sarvam.models.*`.
 - **(assumption — verify)** endpoint, request shape, and output structure at Phase 4;
   store raw OCR JSON in S3 (`ocr/{yyyy}/{MM}/{dd}/{visitId}-page{n}.json`).
 
+> **Implementation status (Phase 4):** built behind the seam as `SarvamClient.ocr` — a multipart
+> `POST /doc_ai/digitise` (`file`, `output_format=md`, `language`), parsing a `markdown`/`text`
+> field. Live docs show **Document AI is job-based** (Sarvam Vision 1.5: `digitise`/`extract`
+> create a job), so the **single-call shape here is an assumption** — a create-job + poll lifecycle
+> may be required. The extraction/validation/UI pipeline downstream is real and tested; verify the
+> vendor call against live Sarvam before production. See `architecture.md` ADR-011.
+
 ---
 
 ## 9. Resilience policy (applies to every call)
