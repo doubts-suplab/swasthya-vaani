@@ -17,13 +17,13 @@ whenever work starts or finishes.
 | **P0 — Scaffold** | 9 | 0 | 0 | 9 |
 | **P1 — Online happy path** | 6 | 0 | 0 | 6 |
 | **P2 — Readback loop** | 4 | 0 | 0 | 4 |
-| **P3 — Realtime + offline** | 5 | 1 | 1 | 7 |
+| **P3 — Realtime + offline** | 7 | 0 | 0 | 7 |
 | **P4 — OCR ingest** | 3 | 0 | 0 | 3 |
-| **P5 — Deploy** | 3 | 1 | 0 | 4 |
-| **Continuous (T7)** | 1 | 0 | 2 | 3 |
+| **P5 — Deploy** | 4 | 0 | 0 | 4 |
+| **Continuous (T7)** | 3 | 0 | 0 | 3 |
 | **Mobile / Android (T8)** | 2 | 0 | 2 | 4 |
 
-**Current focus:** All six phases landed. Data plane deployed via CDK (`ap-south-1`) and the durable DynamoDB store closes the sync seam. Remaining polish: async **SQS worker** (T5-F03), **S3 blob upload** (T5-F04), and the **ECR/ECS compute stack** (T6-F02) — none blocking the PoC definition of done. A live `cdk deploy` + Sarvam/AWS integration run needs the user's credentials.
+**Current focus:** **All roadmap features complete** (T8-F03/F04 Android APK build + native offline storage remain as optional device-side follow-ups). The only steps left are ones that need the user's own credentials/hardware: a live `cdk deploy`, an Android SDK APK build, and a real Sarvam/AWS integration run (which would also confirm the contracts flagged "pending live verification": realtime STT framing §4, OCR digitise lifecycle §8).
 
 ---
 
@@ -76,8 +76,8 @@ whenever work starts or finishes.
 | T4-F05 | Reconcile-on-reconnect | T4 | ✅ | 2026-08-28 | `syncEngine.drainQueue` + `useSyncQueue`; drains on reconnect, no loss |
 | T5-F01 | DynamoDB single-table + GSIs | T5 | ✅ | 2026-08-29 | CDK table+3 GSIs + `DynamoDbVisitRepository` (aws profile); `VisitItem` mapping unit-tested |
 | T5-F02 | Idempotent upsert on `visitId` | T5 | ✅ | 2026-08-28 | `VisitRepository`/`VisitSyncService` last-writer-wins; durable via DynamoDB conditional write |
-| T5-F03 | SQS sync queue + worker | T5 | 🟨 | 2026-08-29 | Queue+DLQ provisioned in CDK; async worker not yet wired (sync is synchronous) |
-| T5-F04 | S3 artifact upload | T5 | ⬜ | — | Bucket provisioned in CDK; blob upload not yet wired |
+| T5-F03 | SQS sync queue + worker | T5 | ✅ | 2026-08-29 | `SqsSyncWorker` drains the queue → idempotent upsert (at-least-once safe); unit-tested |
+| T5-F04 | S3 artifact upload | T5 | ✅ | 2026-08-29 | `S3ArtifactStore` uploads audio/transcript/OCR (keys §8) → provenance; NoOp default |
 
 ---
 
@@ -96,7 +96,7 @@ whenever work starts or finishes.
 | ID | Feature | Track | Status | Updated | Note |
 |---|---|---|---|---|---|
 | T6-F01 | CDK: DynamoDB+S3+SQS in `ap-south-1` | T6 | ✅ | 2026-08-29 | `infra/` CDK app; encryption/TLS/PITR; `cdk synth` clean, 6 tests |
-| T6-F02 | API deploy + secrets wiring | T6 | 🟨 | 2026-08-29 | `aws` profile + config/env/IAM documented; ECR/ECS compute stack not yet scripted |
+| T6-F02 | API deploy + secrets wiring | T6 | ✅ | 2026-08-29 | `ComputeStack`: ECR + ECS Fargate + ALB, least-privilege IAM, env wiring; 2 tests |
 | T6-F03 | Runbook + residency/PII checklist | T6 | ✅ | 2026-08-29 | `docs/runbook.md` |
 | T7-F04 | Residency guard in CI | T7 | ✅ | 2026-08-29 | `residency.ts` fails synth off-India; app refuses non-`ap-south-1`; CI infra job |
 
@@ -117,14 +117,20 @@ whenever work starts or finishes.
 
 | ID | Feature | Status | Updated | Note |
 |---|---|---|---|---|
-| T7-F05 | No-PII-in-logs enforcement | ⬜ | — | |
-| T7-F06 | Observability (correlation id, metrics) | ⬜ | — | |
+| T7-F05 | No-PII-in-logs enforcement | ✅ | 2026-08-29 | `Beneficiary`/`Observations` `toString()` redact name + free-text notes; unit-tested |
+| T7-F06 | Observability (correlation id, metrics) | ✅ | 2026-08-29 | `CorrelationIdWebFilter` (X-Correlation-Id) + `swasthyavaani.visits.synced` counter |
 | T7-F07 | Synthetic fixture library | ✅ | 2026-08-28 | `scripts/fixtures/synthetic-transcripts.json` (code-mixed); grow over time |
 
 ---
 
 ## Changelog
 
+- **2026-08-29** — **Remaining work finished (T5-F03/F04, T6-F02, T7-F05/F06).** Backend:
+  `S3ArtifactStore` (audio/transcript/OCR upload → provenance keys, NoOp default), `SqsSyncWorker`
+  (drains the queue → idempotent upsert), `CorrelationIdWebFilter` + a synced-visits counter, and
+  PII-redacting `toString()` on `Beneficiary`/`Observations`. Infra: `ComputeStack` (ECR + ECS
+  Fargate + ALB, least-privilege IAM, env wiring), residency-guarded. 40 backend + 8 infra tests
+  green. **All roadmap features are now complete.**
 - **2026-08-29** — **Phase 5 (Deploy) landed.** `infra/` AWS CDK app (DynamoDB single-table + 3
   GSIs, S3 artifacts bucket, SQS + DLQ) pinned to `ap-south-1`, all encrypted/TLS/private;
   synth-time **residency guard** (T7-F04) + 6 CDK tests. Backend: durable `DynamoDbVisitRepository`

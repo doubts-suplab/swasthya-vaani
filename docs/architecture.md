@@ -326,3 +326,18 @@ Append entries here; newest last. Format: **context → decision → consequence
   per-field mapping migration as the schema evolves, at the cost of not being able to server-side
   filter on nested fields (fine — access patterns use the keys/GSIs). SQS worker, S3 blob upload,
   and the ECR/ECS compute stack remain as follow-ups (see `runbook.md`).
+
+### ADR-013 — Profile-gated data-plane adapters; async ingest complements sync
+- **Context.** The finishing work (S3 upload, SQS worker, compute stack, observability, PII-in-logs)
+  had to land without destabilizing the credential-free default app or the synchronous sync
+  contract the client relies on.
+- **Decision.** Every AWS-touching adapter is `@Profile("aws")` with a default no-op/in-memory
+  counterpart (`ArtifactStore`→`NoOpArtifactStore`, DynamoDB↔in-memory), so tests and local runs
+  need no AWS. The `SqsSyncWorker` is a *decoupled* ingestion channel (queue → idempotent upsert,
+  at-least-once safe) that complements — does not replace — synchronous `POST /sync`. Artifact
+  uploads are fire-and-forget and only set provenance S3 keys when a real store is wired. PII is
+  kept out of logs by redacting `toString()` on the sensitive records; a `CorrelationIdWebFilter`
+  and a Micrometer counter provide traceability.
+- **Consequence.** The full data plane is exercised in code and unit tests without AWS; enabling it
+  is a profile + credentials switch. The double idempotency (sync path + worker) is intentional
+  belt-and-suspenders, safe because upsert is keyed on `visitId`.

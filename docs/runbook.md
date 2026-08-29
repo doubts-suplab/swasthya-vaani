@@ -93,11 +93,28 @@ Fargate or App Runner **in-region**). Inject `SPRING_PROFILES_ACTIVE=aws`, `AWS_
 
 ---
 
-## Still to do beyond this runbook
+## Compute stack (T6-F02)
 
-- **T5-F03** — SQS is provisioned; wiring the API to enqueue and a worker to drain into DynamoDB
-  (async decoupling) is the next step. Today `POST /sync` writes to DynamoDB synchronously and
-  idempotently.
-- **T5-F04** — the artifacts bucket is provisioned; uploading audio/transcript/OCR blobs (keyed by
-  `visitId`, `data-model.md` §8) is the next step.
-- **T6-F02** — script the ECR/ECS/ALB compute stack in CDK.
+The `SwasthyaVaaniCompute` stack provisions an ECR repo + ECS Fargate service + ALB in
+`ap-south-1`, with least-privilege IAM to the table/bucket/queue and the `aws` profile wired via env.
+Deploy flow:
+
+```bash
+cd infra && pnpm cdk deploy SwasthyaVaaniDataPlane SwasthyaVaaniCompute
+# then build & push the API image to the created ECR repo (swasthyavaani-api) and update the service
+docker build -t swasthyavaani-api ../backend      # (add a Dockerfile for the Spring Boot jar)
+# docker tag / aws ecr get-login-password / docker push ...; then force a new ECS deployment
+```
+
+The task definition ships with a placeholder image so `cdk synth`/`deploy` are valid before the
+first push; swap it for the ECR image (or pass it as a CDK context/env) in the deploy pipeline.
+
+## All roadmap features are implemented
+
+The remaining open items are the ones that require your own credentials/hardware, not new code:
+
+- A live **`cdk deploy`** (AWS account) and an **Android APK build** (Android SDK, T8-F03).
+- A real **Sarvam/AWS integration run**, which also confirms the two contracts flagged
+  *pending live verification*: realtime STT framing (`sarvam-integration.md` §4) and the OCR
+  digitise job lifecycle (§8).
+- Optional hardening: SQS visibility-timeout tuning, S3 lifecycle review, a CI `cdk deploy` gate.
