@@ -272,3 +272,28 @@ Append entries here; newest last. Format: **context → decision → consequence
 - **Consequence.** A single UI to maintain and a Play-Store-ready shell, at the cost of a second
   build toolchain (Android SDK) needed only to produce the APK. A true native app stays possible
   later and would reuse this backend + the `VisitRecord` JSON Schema. See `android.md`.
+
+### ADR-009 — Offline sync behind a repository seam; idempotency lives in the app
+- **Context.** Phase 3 must guarantee "no data lost, no duplicates" over flaky rural links, but
+  DynamoDB/SQS/S3 aren't provisioned until Phase 5 (CDK). The idempotency contract must be correct
+  and tested *before* any AWS wiring.
+- **Decision.** Put a `VisitRepository` seam (`upsert` keyed on `visitId`, last-writer-wins by
+  `updatedAt`) in the app with an `InMemoryVisitRepository` now; `VisitSyncService` +
+  `POST /visits/sync` drain the client queue idempotently. The client keeps an IndexedDB queue and
+  reconciles on reconnect (`syncEngine`/`useSyncQueue`); confirmation is applied on-device so a
+  visit completes with zero connectivity. Phase 5 swaps DynamoDB (dedup via GSy2) + SQS behind the
+  same seam without touching callers.
+- **Consequence.** The exactly-once semantics are unit-tested today (re-draining a queue is a
+  no-op); Phase 5 becomes an infra/adapter change, not a redesign. Trade-off: the PoC store is
+  non-durable (in-memory) until then.
+
+### ADR-010 — Realtime STT proxy: server-mediated, key never in the browser
+- **Context.** `saaras:v3-realtime` is a WebSocket; the subscription key must not reach the client,
+  and the exact channel/frame protocol is still "assumption — verify" (`sarvam-integration.md` §4).
+- **Decision.** The backend exposes `/ws/stt` and relays frames to Sarvam with the key in an
+  `Api-Subscription-Key` header (client ⇄ API ⇄ Sarvam). The URI/key-safety logic is unit-tested;
+  the end-to-end frame protocol is marked pending live verification, and the Phase 1 batch STT path
+  remains the supported route until it's confirmed.
+- **Consequence.** The architecture (key server-side, streaming) is in place and reviewable now,
+  without over-claiming a verified realtime pipeline. Flipping to realtime is a front-end + protocol
+  confirmation step, not new plumbing.

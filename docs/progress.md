@@ -17,13 +17,13 @@ whenever work starts or finishes.
 | **P0 — Scaffold** | 9 | 0 | 0 | 9 |
 | **P1 — Online happy path** | 6 | 0 | 0 | 6 |
 | **P2 — Readback loop** | 4 | 0 | 0 | 4 |
-| **P3 — Realtime + offline** | 0 | 0 | 7 | 7 |
+| **P3 — Realtime + offline** | 4 | 0 | 3 | 7 |
 | **P4 — OCR ingest** | 0 | 0 | 3 | 3 |
 | **P5 — Deploy** | 0 | 0 | 4 | 4 |
 | **Continuous (T7)** | 1 | 0 | 2 | 3 |
 | **Mobile / Android (T8)** | 2 | 0 | 2 | 4 |
 
-**Current focus:** Phase 2 + Android shell (Capacitor) done → begin Phase 3 (realtime STT + offline queue + idempotent sync).
+**Current focus:** Phase 3 core done (offline queue + idempotent sync + realtime proxy) → the remaining P3 items (DynamoDB / SQS / S3 provisioning) are infra and land with **Phase 5 (Deploy)**. Next: **Phase 4 (OCR)** or Phase 5.
 
 ---
 
@@ -71,13 +71,13 @@ whenever work starts or finishes.
 
 | ID | Feature | Track | Status | Updated | Note |
 |---|---|---|---|---|---|
-| T2-F07 | Proxy `saaras:v3-realtime` WSS | T2 | ⬜ | — | |
-| T4-F04 | IndexedDB queue + service worker | T4 | ⬜ | — | |
-| T4-F05 | Reconcile-on-reconnect | T4 | ⬜ | — | |
-| T5-F01 | DynamoDB single-table + GSIs | T5 | ⬜ | — | |
-| T5-F02 | Idempotent upsert on `visitId` | T5 | ⬜ | — | |
-| T5-F03 | SQS sync queue + worker | T5 | ⬜ | — | |
-| T5-F04 | S3 artifact upload | T5 | ⬜ | — | |
+| T2-F07 | Proxy `saaras:v3-realtime` WSS | T2 | ✅ | 2026-08-28 | `/ws/stt` proxy, key server-side; frame protocol **pending live verification** (sarvam-integration §4) |
+| T4-F04 | IndexedDB queue + service worker | T4 | ✅ | 2026-08-28 | `visitQueue` (idb) + Workbox SW; visit completes fully offline |
+| T4-F05 | Reconcile-on-reconnect | T4 | ✅ | 2026-08-28 | `syncEngine.drainQueue` + `useSyncQueue`; drains on reconnect, no loss |
+| T5-F01 | DynamoDB single-table + GSIs | T5 | ⬜ | — | Infra → **Phase 5**; `VisitRepository` seam ready |
+| T5-F02 | Idempotent upsert on `visitId` | T5 | ✅ | 2026-08-28 | `VisitRepository`/`VisitSyncService` last-writer-wins; in-memory now, DynamoDB in P5 |
+| T5-F03 | SQS sync queue + worker | T5 | ⬜ | — | Infra → **Phase 5** |
+| T5-F04 | S3 artifact upload | T5 | ⬜ | — | Infra → **Phase 5** |
 
 ---
 
@@ -125,6 +125,12 @@ whenever work starts or finishes.
 
 ## Changelog
 
+- **2026-08-28** — **Phase 3 core landed (offline-first + realtime proxy).** Backend:
+  `VisitRepository`/`InMemoryVisitRepository` + `VisitSyncService` (idempotent upsert, last-writer-
+  wins), `POST /visits/sync` + `GET /visits/{id}`, and a `/ws/stt` realtime proxy that keeps the
+  Sarvam key server-side (frame protocol pending live verification). Frontend: IndexedDB
+  `visitQueue`, `syncEngine.drainQueue`, `useSyncQueue` (reconcile-on-reconnect), on-device
+  confirm. 29 backend + 16 frontend tests green. DynamoDB/SQS/S3 provisioning deferred to Phase 5.
 - **2026-08-28** — **Android shell (Capacitor) added (T8-F01/F02).** The React PWA is wrapped as
   a native Android app (Capacitor 7, `frontend/android/`) — one codebase. `useVoiceCapture`
   selects the native voice-recorder plugin on device and MediaRecorder on web; manifest declares

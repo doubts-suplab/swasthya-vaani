@@ -164,7 +164,7 @@ capture on-device. `cd frontend && pnpm build && pnpm cap:sync && pnpm android:o
 - [x] **Phase 0** — Repo scaffold, `SarvamClient` abstraction, health checks
 - [x] **Phase 1** — Online happy path: record → STT → extraction → structured record
 - [x] **Phase 2** — Bulbul TTS readback + edit-and-correct
-- [ ] **Phase 3** — Realtime STT + full offline queue and idempotent sync
+- [~] **Phase 3** — Offline queue + idempotent sync + realtime STT proxy *(core done; DynamoDB/SQS/S3 provisioning lands in Phase 5)*
 - [ ] **Phase 4** — Sarvam Vision OCR ingest of paper records
 - [ ] **Phase 5** — CDK deploy to `ap-south-1` + runbook
 

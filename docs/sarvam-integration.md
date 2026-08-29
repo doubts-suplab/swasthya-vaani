@@ -95,6 +95,12 @@ exposes (Aug 2026). The id is always a config value under `sarvam.models.*`.
 - **(assumption — verify)** exact channel path, message framing (binary audio chunks +
   JSON control frames), and event schema before Phase 3.
 
+> **Implementation status (Phase 3):** the backend proxy is built — `/ws/stt` relays frames to this
+> URL with the key in the `Api-Subscription-Key` header (`SarvamRealtimeProxyHandler`,
+> `RealtimeUri`; URI/key-safety unit-tested). The **frame protocol above is still unverified against
+> live Sarvam**, so the batch STT path (§3) remains the supported route until a live check confirms
+> the framing. See `architecture.md` ADR-010.
+
 ---
 
 ## 5. Text-to-Speech (Bulbul) — `POST /text-to-speech`
