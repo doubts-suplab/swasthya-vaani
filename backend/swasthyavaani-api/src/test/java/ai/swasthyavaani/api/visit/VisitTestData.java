@@ -12,20 +12,26 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-/** Shared synthetic visit record for Phase 2 tests (no real patient data — CLAUDE.md §6). */
-final class VisitTestData {
+/** Shared synthetic visit record for tests (no real patient data — CLAUDE.md §6). */
+public final class VisitTestData {
 
   private VisitTestData() {}
 
-  static VisitRecord draft() {
+  public static VisitRecord draft() {
     var now = OffsetDateTime.parse("2026-08-28T09:14:00+05:30");
+    return draftWith("8f2c1a44-6b0e-4c9a-9f1d-2e7a5b3c1d90", now);
+  }
+
+  /** A draft with a specific id and updatedAt — for idempotency/last-writer-wins tests. */
+  public static VisitRecord draftWith(String visitId, OffsetDateTime updatedAt) {
+    var created = OffsetDateTime.parse("2026-08-28T09:14:00+05:30");
     return new VisitRecord(
-        "8f2c1a44-6b0e-4c9a-9f1d-2e7a5b3c1d90",
+        visitId,
         1,
         "ASHA-WB-1",
         "dev-1",
         VisitType.ANC,
-        now,
+        created,
         null,
         new Beneficiary(null, "Rekha Das", BeneficiaryCategory.PREGNANT_WOMAN, null, 24),
         new Observations(52.5, null, null, 28, List.of("fever since yesterday"), null),
@@ -34,8 +40,8 @@ final class VisitTestData {
         ConfirmationStatus.DRAFT,
         SyncStatus.PENDING,
         false,
-        now,
-        now,
+        created,
+        updatedAt,
         null);
   }
 }

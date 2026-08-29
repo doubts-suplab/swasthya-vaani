@@ -5,6 +5,10 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 import ai.swasthyavaani.api.error.GlobalErrorHandler;
+import ai.swasthyavaani.api.store.UpsertOutcome;
+import ai.swasthyavaani.api.store.VisitRepository;
+import ai.swasthyavaani.api.sync.SyncResult;
+import ai.swasthyavaani.api.sync.VisitSyncService;
 import ai.swasthyavaani.domain.enums.ConfirmationStatus;
 import ai.swasthyavaani.domain.enums.SyncStatus;
 import ai.swasthyavaani.domain.enums.VisitType;
@@ -22,6 +26,7 @@ import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @WebFluxTest(controllers = VisitController.class)
@@ -33,6 +38,8 @@ class VisitControllerTest {
   @MockitoBean private VisitTranscriptionService service;
   @MockitoBean private VisitReadbackService readbackService;
   @MockitoBean private VisitConfirmationService confirmationService;
+  @MockitoBean private VisitSyncService syncService;
+  @MockitoBean private VisitRepository repository;
 
   private static BodyInserters.MultipartInserter audioBody() {
     var mb = new MultipartBodyBuilder();
@@ -179,5 +186,32 @@ class VisitControllerTest {
         .exchange()
         .expectStatus()
         .isEqualTo(409);
+  }
+
+  @Test
+  void syncReturnsPerRecordResults() {
+    when(syncService.syncAll(any()))
+        .thenReturn(Flux.just(new SyncResult("v-1", UpsertOutcome.CREATED, SyncStatus.SYNCED)));
+
+    webTestClient
+        .post()
+        .uri("/api/v1/visits/sync")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(List.of(VisitTestData.draft()))
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$[0].visitId")
+        .isEqualTo("v-1")
+        .jsonPath("$[0].outcome")
+        .isEqualTo("CREATED");
+  }
+
+  @Test
+  void getReturnsNotFoundForUnknownVisit() {
+    when(repository.findById("missing")).thenReturn(Mono.empty());
+
+    webTestClient.get().uri("/api/v1/visits/missing").exchange().expectStatus().isNotFound();
   }
 }
