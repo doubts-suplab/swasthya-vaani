@@ -14,4 +14,25 @@ public record Beneficiary(
     String name,
     BeneficiaryCategory category,
     Gender gender,
-    Integer ageYears) {}
+    Integer ageYears) {
+
+  /**
+   * Redacts the high-PII {@code name} so it never leaks into logs ({@code CLAUDE.md} §7.2). JSON
+   * serialization uses the fields directly and is unaffected — only {@code toString()} (what
+   * logging frameworks call) is scrubbed.
+   */
+  @Override
+  public String toString() {
+    return "Beneficiary[beneficiaryRef="
+        + beneficiaryRef
+        + ", name="
+        + (name == null ? "null" : "***")
+        + ", category="
+        + category
+        + ", gender="
+        + gender
+        + ", ageYears="
+        + ageYears
+        + "]";
+  }
+}

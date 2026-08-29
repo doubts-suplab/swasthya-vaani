@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { base64ToAudioUrl, confirmVisit, readbackVisit } from '../api/visitApi';
+import { base64ToAudioUrl, readbackVisit } from '../api/visitApi';
+import { applyConfirmation } from '../domain/confirm';
 import type {
   Actions,
   Beneficiary,
@@ -27,7 +28,7 @@ export function VisitReview({
   onConfirmed,
 }: {
   draft: VisitDraftResponse;
-  onConfirmed: (record: VisitRecord) => void;
+  onConfirmed: (record: VisitRecord) => void | Promise<void>;
 }) {
   const original = useMemo(() => JSON.stringify(draft.visit), [draft.visit]);
   const [visit, setVisit] = useState<VisitRecord>(draft.visit);
@@ -66,7 +67,8 @@ export function VisitReview({
     setBusy('confirm');
     setError(null);
     try {
-      onConfirmed(await confirmVisit(visit, edited));
+      // Confirm on-device (works offline); the record is queued and synced later.
+      await onConfirmed(applyConfirmation(visit, edited));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Confirmation failed.');
     } finally {

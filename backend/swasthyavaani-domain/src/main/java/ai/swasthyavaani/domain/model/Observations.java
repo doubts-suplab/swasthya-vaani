@@ -14,4 +14,26 @@ public record Observations(
     BloodPressure bloodPressure,
     Integer gestationWeeks,
     List<String> reportedSymptoms,
-    String notes) {}
+    String notes) {
+
+  /**
+   * Redacts free-text {@code notes} (potential PII) from logs; JSON is unaffected ({@code
+   * CLAUDE.md} §7.2).
+   */
+  @Override
+  public String toString() {
+    return "Observations[weightKg="
+        + weightKg
+        + ", temperatureC="
+        + temperatureC
+        + ", bloodPressure="
+        + bloodPressure
+        + ", gestationWeeks="
+        + gestationWeeks
+        + ", reportedSymptoms="
+        + reportedSymptoms
+        + ", notes="
+        + (notes == null ? "null" : "***")
+        + "]";
+  }
+}

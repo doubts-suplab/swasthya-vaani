@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { transcribeVisit } from './visitApi';
+import { ingestPhoto, transcribeVisit } from './visitApi';
 import type { VisitDraftResponse } from '../types/visit';
 
 const sampleResponse: VisitDraftResponse = {
@@ -41,6 +41,24 @@ describe('transcribeVisit', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/api/v1/visits/transcribe');
     expect(init.method).toBe('POST');
+    expect(init.body).toBeInstanceOf(FormData);
+  });
+
+  it('posts a photo to the OCR ingest endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(sampleResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const image = new Blob(['img'], { type: 'image/jpeg' });
+    const result = await ingestPhoto(image, 'record.jpg', { languageCode: 'bn-IN' });
+
+    expect(result.visit.visitId).toBe('v-1');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/api/v1/visits/ingest-photo');
     expect(init.body).toBeInstanceOf(FormData);
   });
 

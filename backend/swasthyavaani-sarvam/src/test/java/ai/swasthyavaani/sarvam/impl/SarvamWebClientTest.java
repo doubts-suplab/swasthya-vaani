@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import ai.swasthyavaani.sarvam.config.SarvamProperties;
 import ai.swasthyavaani.sarvam.model.ExtractionRequest;
+import ai.swasthyavaani.sarvam.model.OcrRequest;
 import ai.swasthyavaani.sarvam.model.SpeechRequest;
 import ai.swasthyavaani.sarvam.model.TranscriptionRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -127,6 +128,21 @@ class SarvamWebClientTest {
 
     StepVerifier.create(client.synthesizeSpeech(new SpeechRequest("ওজন ঠিক আছে", "bn-IN", null)))
         .assertNext(result -> assertArrayEquals(raw, result.audio()))
+        .verifyComplete();
+  }
+
+  @Test
+  void ocrParsesDigitisedText() {
+    server.enqueue(
+        new MockResponse()
+            .setHeader("Content-Type", "application/json")
+            .setBody("{\"request_id\":\"r-3\",\"markdown\":\"Rekha Das, weight 52.5 kg\"}"));
+
+    var request =
+        new OcrRequest("img".getBytes(StandardCharsets.UTF_8), "page.jpg", "image/jpeg", "bn-IN");
+
+    StepVerifier.create(client.ocr(request))
+        .assertNext(result -> assertEquals("Rekha Das, weight 52.5 kg", result.text()))
         .verifyComplete();
   }
 }

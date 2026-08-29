@@ -1,23 +1,31 @@
 import { RecordVisit } from './components/RecordVisit';
-import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { useSyncQueue } from './offline/useSyncQueue';
 
 /**
- * App shell. Phase 1 wires in the online capture flow (record → STT → extraction → review).
- * Readback/edit (P2), the offline queue + sync (P3), and OCR (P4) build on top.
+ * App shell. Online capture (P1), readback/edit (P2), and the offline queue + reconcile-on-reconnect
+ * (P3) are wired in. The header reflects live connectivity and the pending-sync count.
  */
 export function App() {
-  const online = useOnlineStatus();
+  const { online, pending, syncing } = useSyncQueue();
+
+  const status = !online
+    ? `Offline${pending ? ` — ${pending} queued` : ''}`
+    : syncing
+      ? 'Syncing…'
+      : pending
+        ? `${pending} pending`
+        : 'Online';
 
   return (
     <main className="shell">
       <header className="shell__header">
         <h1 className="shell__title">SwasthyaVaani</h1>
         <span
-          className={`badge ${online ? 'badge--online' : 'badge--offline'}`}
+          className={`badge ${online && !pending ? 'badge--online' : 'badge--offline'}`}
           role="status"
           aria-live="polite"
         >
-          {online ? 'Online' : 'Offline — visits will be queued'}
+          {status}
         </span>
       </header>
 

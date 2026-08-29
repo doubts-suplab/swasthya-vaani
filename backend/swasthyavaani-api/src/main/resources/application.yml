@@ -4,6 +4,12 @@ spring:
     version: 0.1.0-SNAPSHOT
   codec:
     max-in-memory-size: 16MB
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      # Preserve the visit's local (IST) offset through JSON/DynamoDB round-trips.
+      adjust-dates-to-context-time-zone: false
 
 server:
   port: ${SERVER_PORT:8080}

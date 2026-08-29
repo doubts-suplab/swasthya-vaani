@@ -2,6 +2,8 @@ package ai.swasthyavaani.sarvam;
 
 import ai.swasthyavaani.domain.extraction.VisitExtraction;
 import ai.swasthyavaani.sarvam.model.ExtractionRequest;
+import ai.swasthyavaani.sarvam.model.OcrRequest;
+import ai.swasthyavaani.sarvam.model.OcrResult;
 import ai.swasthyavaani.sarvam.model.SpeechRequest;
 import ai.swasthyavaani.sarvam.model.SpeechResult;
 import ai.swasthyavaani.sarvam.model.TranscriptionRequest;
@@ -55,4 +57,14 @@ public interface SarvamClient {
    * @return the translated text
    */
   Mono<TranslationResult> translate(TranslationRequest request);
+
+  /**
+   * Digitise a photographed paper record via Sarvam Document AI / Vision ({@code
+   * sarvam-integration.md} §8). The returned text is fed through the same extraction + validation
+   * pipeline as a transcript (Phase 4).
+   *
+   * @param request image bytes + language hint
+   * @return the digitised text
+   */
+  Mono<OcrResult> ocr(OcrRequest request);
 }

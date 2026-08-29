@@ -95,6 +95,12 @@ exposes (Aug 2026). The id is always a config value under `sarvam.models.*`.
 - **(assumption — verify)** exact channel path, message framing (binary audio chunks +
   JSON control frames), and event schema before Phase 3.
 
+> **Implementation status (Phase 3):** the backend proxy is built — `/ws/stt` relays frames to this
+> URL with the key in the `Api-Subscription-Key` header (`SarvamRealtimeProxyHandler`,
+> `RealtimeUri`; URI/key-safety unit-tested). The **frame protocol above is still unverified against
+> live Sarvam**, so the batch STT path (§3) remains the supported route until a live check confirms
+> the framing. See `architecture.md` ADR-010.
+
 ---
 
 ## 5. Text-to-Speech (Bulbul) — `POST /text-to-speech`
@@ -163,6 +169,13 @@ exposes (Aug 2026). The id is always a config value under `sarvam.models.*`.
   `VisitExtraction` schema.
 - **(assumption — verify)** endpoint, request shape, and output structure at Phase 4;
   store raw OCR JSON in S3 (`ocr/{yyyy}/{MM}/{dd}/{visitId}-page{n}.json`).
+
+> **Implementation status (Phase 4):** built behind the seam as `SarvamClient.ocr` — a multipart
+> `POST /doc_ai/digitise` (`file`, `output_format=md`, `language`), parsing a `markdown`/`text`
+> field. Live docs show **Document AI is job-based** (Sarvam Vision 1.5: `digitise`/`extract`
+> create a job), so the **single-call shape here is an assumption** — a create-job + poll lifecycle
+> may be required. The extraction/validation/UI pipeline downstream is real and tested; verify the
+> vendor call against live Sarvam before production. See `architecture.md` ADR-011.
 
 ---
 

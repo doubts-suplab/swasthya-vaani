@@ -5,6 +5,8 @@ import ai.swasthyavaani.sarvam.SarvamClient;
 import ai.swasthyavaani.sarvam.SarvamException;
 import ai.swasthyavaani.sarvam.config.SarvamProperties;
 import ai.swasthyavaani.sarvam.model.ExtractionRequest;
+import ai.swasthyavaani.sarvam.model.OcrRequest;
+import ai.swasthyavaani.sarvam.model.OcrResult;
 import ai.swasthyavaani.sarvam.model.SpeechRequest;
 import ai.swasthyavaani.sarvam.model.SpeechResult;
 import ai.swasthyavaani.sarvam.model.SttMode;
@@ -42,6 +44,10 @@ import reactor.util.retry.Retry;
 public class SarvamWebClient implements SarvamClient {
 
   private static final Logger log = LoggerFactory.getLogger(SarvamWebClient.class);
+
+  // Sarvam Document AI digitise endpoint (Sarvam Vision). Assumption — verify the exact path and
+  // whether a job-poll lifecycle is required before production use (sarvam-integration.md §8).
+  private static final String OCR_ENDPOINT = "/doc_ai/digitise";
 
   private final WebClient webClient;
   private final SarvamProperties props;
@@ -168,6 +174,42 @@ public class SarvamWebClient implements SarvamClient {
         .transform(this::resilience);
   }
 
+  @Override
+  public Mono<OcrResult> ocr(OcrRequest request) {
+    var body = new MultipartBodyBuilder();
+    body.part(
+            "file",
+            new ByteArrayResource(request.image()) {
+              @Override
+              public String getFilename() {
+                return request.filename() != null ? request.filename() : "page";
+              }
+            },
+            MediaType.parseMediaType(
+                request.contentType() != null
+                    ? request.contentType()
+                    : MediaType.APPLICATION_OCTET_STREAM_VALUE))
+        .filename(request.filename() != null ? request.filename() : "page");
+    body.part("output_format", "md");
+    if (request.languageCode() != null) {
+      body.part("language", request.languageCode());
+    }
+
+    return webClient
+        .post()
+        .uri(OCR_ENDPOINT)
+        .contentType(MediaType.MULTIPART_FORM_DATA)
+        .body(BodyInserters.fromMultipartData(body.build()))
+        .retrieve()
+        .bodyToMono(JsonNode.class)
+        .map(
+            node ->
+                new OcrResult(
+                    firstNonNull(node, "markdown", "text", "output", "content"),
+                    text(node, "request_id")))
+        .transform(this::resilience);
+  }
+
   // --- helpers -------------------------------------------------------------
 
   private Mono<VisitExtraction> parseExtraction(JsonNode node) {
@@ -213,6 +255,19 @@ public class SarvamWebClient implements SarvamClient {
 
   private static String text(JsonNode node, String field) {
     return node != null && node.hasNonNull(field) ? node.get(field).asText() : null;
+  }
+
+  /**
+   * Return the first present, non-null string field from the candidates (defensive OCR parsing).
+   */
+  private static String firstNonNull(JsonNode node, String... fields) {
+    for (String field : fields) {
+      String value = text(node, field);
+      if (value != null) {
+        return value;
+      }
+    }
+    return null;
   }
 
   /** Apply bounded retry-with-backoff on retryable failures, then map errors to SarvamException. */

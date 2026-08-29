@@ -48,3 +48,25 @@ jobs:
         run: pnpm test
       - name: Build PWA
         run: pnpm build
+
+  infra:
+    name: Infra (AWS CDK · residency guard)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: infra/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: CDK tests (assertions + residency guard T7-F04)
+        run: pnpm test
+      - name: CDK synth
+        run: pnpm synth

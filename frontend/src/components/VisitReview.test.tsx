@@ -2,11 +2,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VisitDraftResponse } from '../types/visit';
 import { VisitReview } from './VisitReview';
-import { confirmVisit, readbackVisit } from '../api/visitApi';
+import { readbackVisit } from '../api/visitApi';
 
 vi.mock('../api/visitApi', () => ({
   readbackVisit: vi.fn(),
-  confirmVisit: vi.fn(),
   base64ToAudioUrl: vi.fn(() => 'blob:mock-audio'),
 }));
 
@@ -36,30 +35,27 @@ const draft: VisitDraftResponse = {
 describe('VisitReview', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('confirms an unedited record with edited=false', async () => {
-    vi.mocked(confirmVisit).mockResolvedValue({ ...draft.visit, confirmationStatus: 'CONFIRMED' });
+  it('confirms an unedited record as CONFIRMED (on-device)', async () => {
     const onConfirmed = vi.fn();
     render(<VisitReview draft={draft} onConfirmed={onConfirmed} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => expect(onConfirmed).toHaveBeenCalledOnce());
-    expect(confirmVisit).toHaveBeenCalledWith(draft.visit, false);
+    expect(onConfirmed.mock.calls[0][0].confirmationStatus).toBe('CONFIRMED');
   });
 
-  it('marks the record edited when a field changes', async () => {
-    vi.mocked(confirmVisit).mockResolvedValue({ ...draft.visit, confirmationStatus: 'EDITED' });
-    render(<VisitReview draft={draft} onConfirmed={vi.fn()} />);
+  it('marks the record EDITED when a field changes', async () => {
+    const onConfirmed = vi.fn();
+    render(<VisitReview draft={draft} onConfirmed={onConfirmed} />);
 
-    const nameInput = screen.getByDisplayValue('Rekha Das');
-    fireEvent.change(nameInput, { target: { value: 'Rekha Devi' } });
-
+    fireEvent.change(screen.getByDisplayValue('Rekha Das'), { target: { value: 'Rekha Devi' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save edits & confirm' }));
 
-    await waitFor(() => expect(confirmVisit).toHaveBeenCalledOnce());
-    const [visitArg, editedArg] = vi.mocked(confirmVisit).mock.calls[0];
-    expect(visitArg.beneficiary?.name).toBe('Rekha Devi');
-    expect(editedArg).toBe(true);
+    await waitFor(() => expect(onConfirmed).toHaveBeenCalledOnce());
+    const confirmedArg = onConfirmed.mock.calls[0][0];
+    expect(confirmedArg.confirmationStatus).toBe('EDITED');
+    expect(confirmedArg.beneficiary?.name).toBe('Rekha Devi');
   });
 
   it('plays a readback and shows the spoken text', async () => {

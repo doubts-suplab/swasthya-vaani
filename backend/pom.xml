@@ -35,10 +35,22 @@
     <!-- Plugin versions -->
     <spotless.version>2.43.0</spotless.version>
     <google-java-format.version>1.23.0</google-java-format.version>
+
+    <!-- AWS SDK v2 (data plane, Phase 5) -->
+    <awssdk.version>2.29.20</awssdk.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <!-- AWS SDK v2 BOM -->
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${awssdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!-- Internal modules -->
       <dependency>
         <groupId>ai.swasthyavaani</groupId>

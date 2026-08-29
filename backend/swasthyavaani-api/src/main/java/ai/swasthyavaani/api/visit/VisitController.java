@@ -1,17 +1,27 @@
 package ai.swasthyavaani.api.visit;
 
+import ai.swasthyavaani.api.ocr.OcrCommand;
+import ai.swasthyavaani.api.ocr.VisitOcrService;
+import ai.swasthyavaani.api.store.VisitRepository;
+import ai.swasthyavaani.api.sync.SyncResult;
+import ai.swasthyavaani.api.sync.VisitSyncService;
 import ai.swasthyavaani.domain.enums.VisitType;
 import ai.swasthyavaani.domain.model.VisitRecord;
+import java.util.List;
 import java.util.Locale;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -26,14 +36,23 @@ public class VisitController {
   private final VisitTranscriptionService service;
   private final VisitReadbackService readbackService;
   private final VisitConfirmationService confirmationService;
+  private final VisitSyncService syncService;
+  private final VisitRepository repository;
+  private final VisitOcrService ocrService;
 
   public VisitController(
       VisitTranscriptionService service,
       VisitReadbackService readbackService,
-      VisitConfirmationService confirmationService) {
+      VisitConfirmationService confirmationService,
+      VisitSyncService syncService,
+      VisitRepository repository,
+      VisitOcrService ocrService) {
     this.service = service;
     this.readbackService = readbackService;
     this.confirmationService = confirmationService;
+    this.syncService = syncService;
+    this.repository = repository;
+    this.ocrService = ocrService;
   }
 
   /**
@@ -70,6 +89,40 @@ public class VisitController {
   }
 
   /**
+   * Ingest a photographed paper record (register / MCP card) via OCR and return the extracted draft
+   * record — the same review loop as a spoken visit (Phase 4).
+   *
+   * @param file the photo (required)
+   */
+  @PostMapping(value = "/ingest-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public Mono<VisitDraftResponse> ingestPhoto(
+      @RequestPart("file") FilePart file,
+      @RequestPart(value = "workerId", required = false) String workerId,
+      @RequestPart(value = "deviceId", required = false) String deviceId,
+      @RequestPart(value = "languageCode", required = false) String languageCode,
+      @RequestPart(value = "visitType", required = false) String visitType,
+      @RequestPart(value = "villageName", required = false) String villageName,
+      @RequestPart(value = "state", required = false) String state,
+      @RequestPart(value = "visitId", required = false) String visitId) {
+
+    return toBytes(file)
+        .map(
+            bytes ->
+                new OcrCommand(
+                    bytes,
+                    file.filename(),
+                    contentType(file),
+                    languageCode,
+                    workerId,
+                    deviceId,
+                    parseVisitType(visitType),
+                    villageName,
+                    state,
+                    visitId))
+        .flatMap(ocrService::ingestPhoto);
+  }
+
+  /**
    * Speak a draft record back in the worker's language for confirmation (Phase 2). Returns the
    * spoken text and base64 audio.
    *
@@ -90,6 +143,24 @@ public class VisitController {
   @PostMapping(value = "/confirm", consumes = MediaType.APPLICATION_JSON_VALUE)
   public Mono<VisitRecord> confirm(@RequestBody ConfirmRequest request) {
     return Mono.fromSupplier(() -> confirmationService.confirm(request.visit(), request.edited()));
+  }
+
+  /**
+   * Reconcile a batch of records from the client's offline queue. Idempotent per {@code visitId} —
+   * re-draining the queue after a flaky connection never duplicates or loses a visit (Phase 3).
+   */
+  @PostMapping(value = "/sync", consumes = MediaType.APPLICATION_JSON_VALUE)
+  public Flux<SyncResult> sync(@RequestBody List<VisitRecord> visits) {
+    return syncService.syncAll(visits);
+  }
+
+  /** Fetch a synced record by its {@code visitId}. */
+  @GetMapping("/{visitId}")
+  public Mono<ResponseEntity<VisitRecord>> get(@PathVariable String visitId) {
+    return repository
+        .findById(visitId)
+        .map(ResponseEntity::ok)
+        .defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
   private static Mono<byte[]> toBytes(FilePart file) {

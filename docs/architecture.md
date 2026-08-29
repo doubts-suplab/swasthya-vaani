@@ -272,3 +272,72 @@ Append entries here; newest last. Format: **context → decision → consequence
 - **Consequence.** A single UI to maintain and a Play-Store-ready shell, at the cost of a second
   build toolchain (Android SDK) needed only to produce the APK. A true native app stays possible
   later and would reuse this backend + the `VisitRecord` JSON Schema. See `android.md`.
+
+### ADR-009 — Offline sync behind a repository seam; idempotency lives in the app
+- **Context.** Phase 3 must guarantee "no data lost, no duplicates" over flaky rural links, but
+  DynamoDB/SQS/S3 aren't provisioned until Phase 5 (CDK). The idempotency contract must be correct
+  and tested *before* any AWS wiring.
+- **Decision.** Put a `VisitRepository` seam (`upsert` keyed on `visitId`, last-writer-wins by
+  `updatedAt`) in the app with an `InMemoryVisitRepository` now; `VisitSyncService` +
+  `POST /visits/sync` drain the client queue idempotently. The client keeps an IndexedDB queue and
+  reconciles on reconnect (`syncEngine`/`useSyncQueue`); confirmation is applied on-device so a
+  visit completes with zero connectivity. Phase 5 swaps DynamoDB (dedup via GSy2) + SQS behind the
+  same seam without touching callers.
+- **Consequence.** The exactly-once semantics are unit-tested today (re-draining a queue is a
+  no-op); Phase 5 becomes an infra/adapter change, not a redesign. Trade-off: the PoC store is
+  non-durable (in-memory) until then.
+
+### ADR-010 — Realtime STT proxy: server-mediated, key never in the browser
+- **Context.** `saaras:v3-realtime` is a WebSocket; the subscription key must not reach the client,
+  and the exact channel/frame protocol is still "assumption — verify" (`sarvam-integration.md` §4).
+- **Decision.** The backend exposes `/ws/stt` and relays frames to Sarvam with the key in an
+  `Api-Subscription-Key` header (client ⇄ API ⇄ Sarvam). The URI/key-safety logic is unit-tested;
+  the end-to-end frame protocol is marked pending live verification, and the Phase 1 batch STT path
+  remains the supported route until it's confirmed.
+- **Consequence.** The architecture (key server-side, streaming) is in place and reviewable now,
+  without over-claiming a verified realtime pipeline. Flipping to realtime is a front-end + protocol
+  confirmation step, not new plumbing.
+
+### ADR-011 — OCR ingest reuses the extraction + assembly path
+- **Context.** A photographed paper register must land in the *same* `VisitRecord` schema and
+  review loop as a spoken visit — not a parallel pipeline.
+- **Decision.** Add `SarvamClient.ocr` (Sarvam Document AI digitise) and feed its text through the
+  **same** `sarvam-m` extraction + JSON-Schema validation as a transcript. Record construction was
+  extracted into a shared `VisitAssembler` used by both the spoken (`VisitTranscriptionService`) and
+  OCR (`VisitOcrService`) paths; OCR records carry `provenance.sttModel = null` and a "via OCR"
+  warning. The digitise endpoint/job-lifecycle is marked pending live verification
+  (`sarvam-integration.md` §8), like the realtime channel.
+- **Consequence.** Paper and voice converge on one schema, one validator, one review/confirm/sync
+  loop; the only OCR-specific code is the vendor call + a thin service. Trade-off: the async
+  digitise job lifecycle may need adding once verified against live Sarvam.
+
+### ADR-012 — Phase 5: CDK data plane + DynamoDB single-table adapter (JSON body)
+- **Context.** Phase 3 built idempotent sync against an in-memory store behind `VisitRepository`;
+  Phase 5 makes it durable in `ap-south-1` without changing callers, and provisions the data plane
+  as code with residency enforced.
+- **Decision.** An AWS CDK app (`infra/`) provisions DynamoDB (single-table + 3 GSIs), an S3
+  artifacts bucket, and an SQS queue+DLQ — all `ap-south-1`, encrypted, TLS-only, private, with a
+  **synth-time residency guard** (`residency.ts`, T7-F04). The backend adds `DynamoDbVisitRepository`
+  under the `aws` profile: items store the record as a JSON `body` plus derived single-table keys
+  (`VisitItem`), and upsert uses a **conditional write** (`attribute_not_exists(PK) OR updatedAt <
+  :ua`) for the same last-writer-wins idempotency as the in-memory store. Jackson is configured to
+  preserve the IST offset through round-trips.
+- **Consequence.** The sync seam closes durably with no caller changes; the JSON-body item avoids a
+  per-field mapping migration as the schema evolves, at the cost of not being able to server-side
+  filter on nested fields (fine — access patterns use the keys/GSIs). SQS worker, S3 blob upload,
+  and the ECR/ECS compute stack remain as follow-ups (see `runbook.md`).
+
+### ADR-013 — Profile-gated data-plane adapters; async ingest complements sync
+- **Context.** The finishing work (S3 upload, SQS worker, compute stack, observability, PII-in-logs)
+  had to land without destabilizing the credential-free default app or the synchronous sync
+  contract the client relies on.
+- **Decision.** Every AWS-touching adapter is `@Profile("aws")` with a default no-op/in-memory
+  counterpart (`ArtifactStore`→`NoOpArtifactStore`, DynamoDB↔in-memory), so tests and local runs
+  need no AWS. The `SqsSyncWorker` is a *decoupled* ingestion channel (queue → idempotent upsert,
+  at-least-once safe) that complements — does not replace — synchronous `POST /sync`. Artifact
+  uploads are fire-and-forget and only set provenance S3 keys when a real store is wired. PII is
+  kept out of logs by redacting `toString()` on the sensitive records; a `CorrelationIdWebFilter`
+  and a Micrometer counter provide traceability.
+- **Consequence.** The full data plane is exercised in code and unit tests without AWS; enabling it
+  is a profile + credentials switch. The double idempotency (sync path + worker) is intentional
+  belt-and-suspenders, safe because upsert is keyed on `visitId`.
