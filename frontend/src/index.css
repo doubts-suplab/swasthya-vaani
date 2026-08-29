@@ -136,6 +136,14 @@ body {
   align-items: center;
 }
 
+.capture__or {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .capture__review audio {
   width: 100%;
 }

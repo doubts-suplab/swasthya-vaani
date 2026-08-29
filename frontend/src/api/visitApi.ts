@@ -48,6 +48,26 @@ export async function transcribeVisit(
   return (await response.json()) as VisitDraftResponse;
 }
 
+/** Ingest a photographed paper record (OCR) and get back the extracted DRAFT record. */
+export async function ingestPhoto(
+  image: Blob,
+  filename: string,
+  options: TranscribeOptions = {},
+): Promise<VisitDraftResponse> {
+  const form = new FormData();
+  form.append('file', image, filename);
+  if (options.workerId) form.append('workerId', options.workerId);
+  if (options.deviceId) form.append('deviceId', options.deviceId);
+  if (options.languageCode) form.append('languageCode', options.languageCode);
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/visits/ingest-photo`, {
+    method: 'POST',
+    body: form,
+  });
+  if (!response.ok) return parseError(response);
+  return (await response.json()) as VisitDraftResponse;
+}
+
 /** Request a spoken confirmation (Bulbul TTS) of the record in the target language. */
 export async function readbackVisit(
   visit: VisitRecord,
