@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { transcribeVisit } from '../api/visitApi';
 import { useVoiceCapture } from '../hooks/useVoiceCapture';
+import { enqueueVisit } from '../offline/syncEngine';
 import type { VisitDraftResponse, VisitRecord } from '../types/visit';
 import { VisitRecordView } from './VisitRecordView';
 import { VisitReview } from './VisitReview';
@@ -57,7 +58,8 @@ export function RecordVisit() {
     return (
       <VisitReview
         draft={draft}
-        onConfirmed={(record) => {
+        onConfirmed={async (record) => {
+          await enqueueVisit(record); // save locally + trigger sync (works offline)
           setConfirmed(record);
           setPhase('confirmed');
         }}
@@ -69,7 +71,7 @@ export function RecordVisit() {
     return (
       <div>
         <div className="alert alert--ok" role="status">
-          ✓ Visit {confirmed.confirmationStatus.toLowerCase()} — queued to sync.
+          ✓ Visit {confirmed.confirmationStatus.toLowerCase()} — saved locally and queued to sync.
         </div>
         <VisitRecordView draft={{ ...draft, visit: confirmed }} />
         <button className="cta cta--enabled" type="button" onClick={startOver}>

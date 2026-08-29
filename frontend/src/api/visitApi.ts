@@ -1,4 +1,9 @@
-import type { ReadbackResponse, VisitDraftResponse, VisitRecord } from '../types/visit';
+import type {
+  ReadbackResponse,
+  SyncResult,
+  VisitDraftResponse,
+  VisitRecord,
+} from '../types/visit';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
@@ -69,6 +74,17 @@ export async function confirmVisit(visit: VisitRecord, edited: boolean): Promise
   });
   if (!response.ok) return parseError(response);
   return (await response.json()) as VisitRecord;
+}
+
+/** Reconcile a batch of queued visits with the backend. Idempotent per visitId. */
+export async function syncVisits(records: VisitRecord[]): Promise<SyncResult[]> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/visits/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(records),
+  });
+  if (!response.ok) return parseError(response);
+  return (await response.json()) as SyncResult[];
 }
 
 /** Decode base64 audio (as returned by the readback endpoint) into a playable object URL. */

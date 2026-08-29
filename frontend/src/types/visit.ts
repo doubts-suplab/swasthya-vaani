@@ -98,3 +98,11 @@ export interface ReadbackResponse {
   audioContentType: string;
   cached: boolean;
 }
+
+export type UpsertOutcome = 'CREATED' | 'UPDATED' | 'DUPLICATE_IGNORED';
+
+export interface SyncResult {
+  visitId: string;
+  outcome: UpsertOutcome;
+  syncStatus: SyncStatus;
+}
