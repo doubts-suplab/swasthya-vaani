@@ -1,5 +1,7 @@
 package ai.swasthyavaani.api.visit;
 
+import ai.swasthyavaani.api.ocr.OcrCommand;
+import ai.swasthyavaani.api.ocr.VisitOcrService;
 import ai.swasthyavaani.api.store.VisitRepository;
 import ai.swasthyavaani.api.sync.SyncResult;
 import ai.swasthyavaani.api.sync.VisitSyncService;
@@ -36,18 +38,21 @@ public class VisitController {
   private final VisitConfirmationService confirmationService;
   private final VisitSyncService syncService;
   private final VisitRepository repository;
+  private final VisitOcrService ocrService;
 
   public VisitController(
       VisitTranscriptionService service,
       VisitReadbackService readbackService,
       VisitConfirmationService confirmationService,
       VisitSyncService syncService,
-      VisitRepository repository) {
+      VisitRepository repository,
+      VisitOcrService ocrService) {
     this.service = service;
     this.readbackService = readbackService;
     this.confirmationService = confirmationService;
     this.syncService = syncService;
     this.repository = repository;
+    this.ocrService = ocrService;
   }
 
   /**
@@ -81,6 +86,40 @@ public class VisitController {
                     state,
                     visitId))
         .flatMap(service::transcribeAndExtract);
+  }
+
+  /**
+   * Ingest a photographed paper record (register / MCP card) via OCR and return the extracted draft
+   * record — the same review loop as a spoken visit (Phase 4).
+   *
+   * @param file the photo (required)
+   */
+  @PostMapping(value = "/ingest-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public Mono<VisitDraftResponse> ingestPhoto(
+      @RequestPart("file") FilePart file,
+      @RequestPart(value = "workerId", required = false) String workerId,
+      @RequestPart(value = "deviceId", required = false) String deviceId,
+      @RequestPart(value = "languageCode", required = false) String languageCode,
+      @RequestPart(value = "visitType", required = false) String visitType,
+      @RequestPart(value = "villageName", required = false) String villageName,
+      @RequestPart(value = "state", required = false) String state,
+      @RequestPart(value = "visitId", required = false) String visitId) {
+
+    return toBytes(file)
+        .map(
+            bytes ->
+                new OcrCommand(
+                    bytes,
+                    file.filename(),
+                    contentType(file),
+                    languageCode,
+                    workerId,
+                    deviceId,
+                    parseVisitType(visitType),
+                    villageName,
+                    state,
+                    visitId))
+        .flatMap(ocrService::ingestPhoto);
   }
 
   /**

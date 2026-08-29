@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 import ai.swasthyavaani.api.error.GlobalErrorHandler;
+import ai.swasthyavaani.api.ocr.VisitOcrService;
 import ai.swasthyavaani.api.store.UpsertOutcome;
 import ai.swasthyavaani.api.store.VisitRepository;
 import ai.swasthyavaani.api.sync.SyncResult;
@@ -40,6 +41,7 @@ class VisitControllerTest {
   @MockitoBean private VisitConfirmationService confirmationService;
   @MockitoBean private VisitSyncService syncService;
   @MockitoBean private VisitRepository repository;
+  @MockitoBean private VisitOcrService ocrService;
 
   private static BodyInserters.MultipartInserter audioBody() {
     var mb = new MultipartBodyBuilder();
@@ -213,5 +215,56 @@ class VisitControllerTest {
     when(repository.findById("missing")).thenReturn(Mono.empty());
 
     webTestClient.get().uri("/api/v1/visits/missing").exchange().expectStatus().isNotFound();
+  }
+
+  @Test
+  void ingestPhotoReturnsDraftRecord() {
+    var now = OffsetDateTime.parse("2026-08-28T09:14:00+05:30");
+    var record =
+        new VisitRecord(
+            "ocr-1",
+            1,
+            "ASHA-WB-1",
+            "dev",
+            VisitType.GENERAL,
+            now,
+            null,
+            null,
+            null,
+            null,
+            null,
+            ConfirmationStatus.DRAFT,
+            SyncStatus.PENDING,
+            false,
+            now,
+            now,
+            null);
+    when(ocrService.ingestPhoto(any()))
+        .thenReturn(Mono.just(new VisitDraftResponse(record, "digitised text", true, List.of())));
+
+    var mb = new MultipartBodyBuilder();
+    mb.part(
+            "file",
+            new ByteArrayResource("img".getBytes()) {
+              @Override
+              public String getFilename() {
+                return "page.jpg";
+              }
+            })
+        .contentType(MediaType.IMAGE_JPEG);
+
+    webTestClient
+        .post()
+        .uri("/api/v1/visits/ingest-photo")
+        .contentType(MediaType.MULTIPART_FORM_DATA)
+        .body(BodyInserters.fromMultipartData(mb.build()))
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.visit.visitId")
+        .isEqualTo("ocr-1")
+        .jsonPath("$.transcript")
+        .isEqualTo("digitised text");
   }
 }
