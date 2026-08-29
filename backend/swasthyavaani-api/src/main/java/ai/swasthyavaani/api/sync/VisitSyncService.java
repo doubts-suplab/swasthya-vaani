@@ -3,6 +3,8 @@ package ai.swasthyavaani.api.sync;
 import ai.swasthyavaani.api.store.VisitRepository;
 import ai.swasthyavaani.domain.enums.SyncStatus;
 import ai.swasthyavaani.domain.model.VisitRecord;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -22,10 +24,12 @@ public class VisitSyncService {
 
   private final VisitRepository repository;
   private final Clock clock;
+  private final Counter syncedCounter;
 
-  public VisitSyncService(VisitRepository repository, Clock clock) {
+  public VisitSyncService(VisitRepository repository, Clock clock, MeterRegistry meterRegistry) {
     this.repository = repository;
     this.clock = clock;
+    this.syncedCounter = meterRegistry.counter("swasthyavaani.visits.synced");
   }
 
   /** Sync one record. Idempotent: safe to call repeatedly with the same {@code visitId}. */
@@ -33,6 +37,7 @@ public class VisitSyncService {
     var synced = markSynced(record);
     return repository
         .upsert(synced)
+        .doOnNext(result -> syncedCounter.increment())
         .map(
             result ->
                 new SyncResult(

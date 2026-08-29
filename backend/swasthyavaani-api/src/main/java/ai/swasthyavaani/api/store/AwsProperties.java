@@ -12,4 +12,6 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 public record AwsProperties(
     @DefaultValue("ap-south-1") String region,
     @DefaultValue("swasthyavaani") String tableName,
+    @DefaultValue("swasthyavaani-artifacts-apsouth1") String artifactsBucket,
+    String syncQueueUrl,
     String dynamoEndpoint) {}

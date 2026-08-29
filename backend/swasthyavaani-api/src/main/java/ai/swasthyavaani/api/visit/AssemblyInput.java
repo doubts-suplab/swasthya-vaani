@@ -19,6 +19,8 @@ import java.util.List;
  * @param extractionModel extraction model id
  * @param sourceText the raw transcript or OCR text (surfaced to the UI)
  * @param extraWarnings provenance notes to prepend (e.g. "ingested via OCR")
+ * @param audioS3Key provenance pointer to the audio blob in S3, or {@code null}
+ * @param transcriptS3Key provenance pointer to the transcript blob in S3, or {@code null}
  */
 public record AssemblyInput(
     String visitId,
@@ -31,4 +33,6 @@ public record AssemblyInput(
     String sttModel,
     String extractionModel,
     String sourceText,
-    List<String> extraWarnings) {}
+    List<String> extraWarnings,
+    String audioS3Key,
+    String transcriptS3Key) {}

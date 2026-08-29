@@ -81,8 +81,8 @@ public class VisitAssembler {
             in.extractionModel(),
             null,
             warnings.isEmpty() ? null : List.copyOf(warnings),
-            null,
-            null);
+            in.audioS3Key(),
+            in.transcriptS3Key());
 
     return new VisitRecord(
         in.visitId() != null ? in.visitId() : UUID.randomUUID().toString(),

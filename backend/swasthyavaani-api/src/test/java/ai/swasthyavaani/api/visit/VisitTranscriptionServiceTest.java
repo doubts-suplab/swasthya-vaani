@@ -55,7 +55,9 @@ class VisitTranscriptionServiceTest {
     var validator = new VisitExtractionValidator(JsonMapper.builder().findAndAddModules().build());
     var clock = Clock.fixed(Instant.parse("2026-08-28T09:14:00Z"), ZoneId.of("Asia/Kolkata"));
     var assembler = new VisitAssembler(validator, clock);
-    service = new VisitTranscriptionService(sarvam, props, assembler);
+    service =
+        new VisitTranscriptionService(
+            sarvam, props, assembler, new ai.swasthyavaani.api.artifact.NoOpArtifactStore(), clock);
   }
 
   private TranscribeCommand command() {

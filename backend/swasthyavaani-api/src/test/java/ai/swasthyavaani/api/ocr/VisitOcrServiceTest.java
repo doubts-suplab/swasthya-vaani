@@ -52,11 +52,13 @@ class VisitOcrServiceTest {
             new SarvamProperties.Tts("shubh", 22050),
             new SarvamProperties.Timeouts(Duration.ofSeconds(3), Duration.ofSeconds(30)),
             new SarvamProperties.Retry(3, Duration.ofMillis(500)));
+    var clock = Clock.fixed(Instant.parse("2026-08-28T09:14:00Z"), ZoneId.of("Asia/Kolkata"));
     var assembler =
         new VisitAssembler(
-            new VisitExtractionValidator(JsonMapper.builder().findAndAddModules().build()),
-            Clock.fixed(Instant.parse("2026-08-28T09:14:00Z"), ZoneId.of("Asia/Kolkata")));
-    service = new VisitOcrService(sarvam, props, assembler);
+            new VisitExtractionValidator(JsonMapper.builder().findAndAddModules().build()), clock);
+    service =
+        new VisitOcrService(
+            sarvam, props, assembler, new ai.swasthyavaani.api.artifact.NoOpArtifactStore(), clock);
   }
 
   private OcrCommand command() {

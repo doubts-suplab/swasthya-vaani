@@ -6,4 +6,7 @@
 aws:
   region: ${AWS_REGION:ap-south-1}
   table-name: ${SWASTHYAVAANI_TABLE:swasthyavaani}
+  artifacts-bucket: ${SWASTHYAVAANI_ARTIFACTS_BUCKET:swasthyavaani-artifacts-apsouth1}
+  sync-queue-url: ${SWASTHYAVAANI_SYNC_QUEUE_URL:}
+  sqs-poll-delay-ms: ${SWASTHYAVAANI_SQS_POLL_DELAY_MS:5000}
   # dynamo-endpoint: http://localhost:8000   # uncomment for DynamoDB Local / LocalStack only

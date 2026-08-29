@@ -18,7 +18,9 @@ class VisitSyncServiceTest {
   private final Clock clock =
       Clock.fixed(Instant.parse("2026-08-28T12:00:00Z"), ZoneId.of("Asia/Kolkata"));
   private final InMemoryVisitRepository repo = new InMemoryVisitRepository();
-  private final VisitSyncService service = new VisitSyncService(repo, clock);
+  private final VisitSyncService service =
+      new VisitSyncService(
+          repo, clock, new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
 
   @Test
   void syncMarksRecordSyncedAndStamps() {
