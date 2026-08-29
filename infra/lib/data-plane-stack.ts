@@ -14,6 +14,10 @@ import { assertInIndia } from './residency';
  * Encryption at rest and in transit is on everywhere; nothing is public. See `docs/runbook.md`.
  */
 export class DataPlaneStack extends Stack {
+  readonly table: dynamodb.Table;
+  readonly artifacts: s3.Bucket;
+  readonly syncQueue: sqs.Queue;
+
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
 
@@ -69,6 +73,10 @@ export class DataPlaneStack extends Stack {
       visibilityTimeout: Duration.seconds(300),
       deadLetterQueue: { queue: dlq, maxReceiveCount: 5 },
     });
+
+    this.table = table;
+    this.artifacts = artifacts;
+    this.syncQueue = syncQueue;
 
     // --- Outputs (consumed by the API's config) --------------------------
     new CfnOutput(this, 'TableName', { value: table.tableName });
